@@ -88,7 +88,7 @@ class MolGraph:
 
 
 class ChemDataset(Dataset):
-    def __init__(self, smiles: str, labels, flip_prob: float=0.1, noise_std: float=0.1, precompute: bool=True):
+    def __init__(self, smiles: str, labels, flip_prob: float=0.25, noise_std: float=0.25, precompute: bool=True):
         # Choose here how much noise to add for the denoising task
         # For reference, denoising autoencoders usually flip 10% of the bits, and BERT's token masking is 15%
         super(ChemDataset, self).__init__()
