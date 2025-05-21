@@ -1,0 +1,20 @@
+name: my_project_env
+channels:
+  - nvidia
+  - pytorch
+  - pyg
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy=1.26.4
+  - pandas=2.2.1
+  - matplotlib=3.8.4
+  - scikit-learn=1.4.1.post1
+  - pytorch=2.3.1
+  - pytorch-cuda=12.1
+  - optuna=4.3.0
+  - rdkit=2024.09.6
+  - pip
+  - pip:
+      - torch-geometric==2.5.3
