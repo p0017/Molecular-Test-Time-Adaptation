@@ -18,3 +18,4 @@ dependencies:
   - pip
   - pip:
       - torch-geometric==2.5.3
+      - beartype==0.21.0

@@ -9,12 +9,23 @@ import torch
 import torch_geometric as tg
 from torch_geometric.data import Dataset
 from torch_geometric.loader import DataLoader
+from beartype import beartype
 
 
+@beartype
 def one_hot_encoding_unk(value, choices: list) -> list:
-    # One hot encoding with unknown value handling
-    # If the value is in choices, it puts a 1 at the corresponding index
-    # Otherwise, it puts a 1 at the last index (unknown)
+    """One hot encoding with unknown value handling.
+
+    If the value is in choices, it puts a 1 at the corresponding index.
+    Otherwise, it puts a 1 at the last index (unknown).
+
+    Args:
+        value: The value to encode
+        choices: List of known/valid choices
+        
+    Returns:
+        list: One-hot encoded vector with length len(choices) + 1
+    """
     encoding = [0] * (len(choices) + 1)
     index = choices.index(value) if value in choices else -1
     encoding[index] = 1
@@ -22,8 +33,15 @@ def one_hot_encoding_unk(value, choices: list) -> list:
 
 
 def get_atom_features(atom) -> list:
-    # Returns a feature list for the atom
-    # Concatenates the one-hot encodings into a single list
+    """Returns a feature list for the atom by concatenating one-hot encodings.
+    
+    Args:
+        atom: RDKit atom object
+        
+    Returns:
+        list: Flattened list of atom features including symbol, degree, charge,
+              hydrogen count, hybridization, aromaticity, and mass
+    """
     atom_features = [
         one_hot_encoding_unk(atom.GetSymbol(), ['B','Be','Br','C','Cl','F','I','N','Nb','O','P','S','Se','Si','V','W']),
         one_hot_encoding_unk(atom.GetTotalDegree(), [0, 1, 2, 3, 4, 5]),
@@ -43,7 +61,19 @@ def get_atom_features(atom) -> list:
 
 
 def get_bond_features(bond) -> list:
-    # Returns a one-hot encoded feature list for the bond
+    """Returns a one-hot encoded feature list for the bond.
+    Args:
+        bond: RDKit bond object or None
+    Returns:
+        list: A 7-dimensional feature vector where:
+            - Index 0: 1 if bond is None, 0 otherwise
+            - Index 1: 1 if single bond, 0 otherwise
+            - Index 2: 1 if double bond, 0 otherwise
+            - Index 3: 1 if triple bond, 0 otherwise
+            - Index 4: 1 if aromatic bond, 0 otherwise
+            - Index 5: 1 if bond is conjugated, 0 otherwise
+            - Index 6: 1 if bond is in ring, 0 otherwise
+    """
     bond_fdim = 7
 
     if bond is None:
@@ -62,9 +92,19 @@ def get_bond_features(bond) -> list:
     return bond_features
 
 
+@beartype
 class MolGraph:
-    # Returns a custom molecular graph for a given SMILES string
-    # Contains atom, bond features and node connectivity
+    """Custom molecular graph for a given SMILES string.
+    This class creates a graph of a molecule containing atom features,
+    bond features, and node connectivity information.
+    Args:
+        smiles (str): SMILES string representation of the molecule
+    Attributes:
+        smiles (str): The input SMILES string
+        atom_features (list): List of atom feature vectors
+        bond_features (list): List of bond feature vectors (stored twice for each bond)
+        edge_index (list): List of tuples representing connected atom pairs
+    """
     def __init__(self, smiles: str):
         self.smiles = smiles
         self.atom_features = []
@@ -88,9 +128,18 @@ class MolGraph:
 
 
 class ChemDataset(Dataset):
-    def __init__(self, smiles: str, labels, flip_prob: float=0.25, noise_std: float=0.25, precompute: bool=True):
-        # Choose here how much noise to add for the denoising task
-        # For reference, denoising autoencoders usually flip 10% of the bits, and BERT's token masking is 15%
+    @beartype
+    def __init__(self, smiles: np.ndarray, labels, flip_prob: float=0.25, noise_std: float=0.25, precompute: bool=True):
+        """Initialize ChemDataset with SMILES strings and labels.
+        Args:
+            smiles (np.ndarray): SMILES molecular representations
+            labels: Target labels for the molecules
+            flip_prob (float, optional): Probability of flipping bits for denoising task. 
+                Defaults to 0.25. Reference: denoising autoencoders use ~10%, BERT uses 15%.
+            noise_std (float, optional): Standard deviation for noise addition. Defaults to 0.25.
+            precompute (bool, optional): Whether to precompute dataset for faster GPU training. 
+                Defaults to True.
+        """
         super(ChemDataset, self).__init__()
         self.smiles = smiles
         self.labels = labels
@@ -99,7 +148,7 @@ class ChemDataset(Dataset):
         self.noise_std = noise_std
         self.precompute = precompute
 
-        # Precomputing the dataset so the get method is faster, and the GPU doesn't have to wait for the CPU
+        # Precomputing the dataset such that the get method is faster, and the GPU doesn't have to wait for the CPU
         if precompute:
             print(f"Precomputing data...")
             with ThreadPoolExecutor(max_workers=4) as executor:
@@ -114,8 +163,17 @@ class ChemDataset(Dataset):
             print(f"Precomputation finished. {len(self.cache)} molecules cached.")
 
     def process_key(self, key):
-        # Process the key to get the corresponding molecule graph
-        # If the molecule is already cached, return it
+        """Process a key to retrieve the corresponding molecule graph data.
+        
+        Returns cached molecule if available, otherwise creates a new MolGraph
+        from SMILES string and caches the result.
+        
+        Args:
+            key: Index or identifier for the molecule
+            
+        Returns:
+            Processed molecule data object
+        """
         smiles = self.smiles[key]
         if smiles in self.cache.keys():
             molecule = self.cache[smiles]
@@ -126,10 +184,17 @@ class ChemDataset(Dataset):
         return molecule
 
     def molgraph2data(self, molgraph, key):
+        """Convert a molecular graph to PyTorch Geometric Data object with optional noise augmentation.
+        Args:
+            molgraph: Molecular graph object containing atom_features, edge_index, and bond_features
+            key: Index key to retrieve corresponding labels and SMILES from stored data
+        Returns:
+            tg.data.Data: PyTorch Geometric data object with node features, edge indices, 
+                          edge attributes, labels, SMILES, and optionally noisy versions 
+                          of features if augmentation is enabled
+        """
         data = tg.data.Data()
-
-        # Coverting all features and labels to tensors
-        # And adding it to the data object
+        
         data.x = torch.tensor(molgraph.atom_features, dtype=torch.float)
         data.edge_index = torch.tensor(molgraph.edge_index, dtype=torch.long).t().contiguous()
         data.edge_attr = torch.tensor(molgraph.bond_features, dtype=torch.float)
@@ -180,9 +245,20 @@ class ChemDataset(Dataset):
         return len(self.smiles)
     
 
+@beartype
 def construct_loader(data_df: pd.DataFrame, smiles_column: str, target_column: str, shuffle: bool=True, batch_size: int=16):  
-# Constructs a PyTorch Geometric DataLoader from a DataFrame
-# Takes the SMILES and target column names as input
+    """Constructs a PyTorch Geometric DataLoader from a DataFrame containing SMILES and target data.
+    Args:
+        data_df (pd.DataFrame): Input DataFrame containing molecular data
+        smiles_column (str): Name of the column containing SMILES strings
+        target_column (str): Name of the column containing target values
+        shuffle (bool, optional): Whether to shuffle the data. Defaults to True.
+        batch_size (int, optional): Number of samples per batch. Defaults to 16.
+    Returns:
+        DataLoader: PyTorch DataLoader for the chemical dataset
+    Raises:
+        AssertionError: If the input DataFrame is empty
+    """
     assert len(data_df) > 0, "DataFrame is empty"
         
     smiles = data_df[smiles_column].values

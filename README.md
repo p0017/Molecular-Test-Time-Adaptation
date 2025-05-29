@@ -1,56 +1,79 @@
 # Test-time Adaptation for Graph-based Molecular Solubility Prediction
 
-This repository investigates applying graph neural networks (GNNs) to predict molecular solubility, using a self-supervised learning (SSL) approach with a test-time adaptation (TTA) step.
+This repository investigates applying graph neural networks (GNNs) to predict molecular solubility of unseen data, using test-time adaptation (TTA).
+
+<p align="center">
+  <img src="figures/sets_TTA.jpg" width="750" />
+</p>
 
 ---
 
 ## Overview
 
-In this project, we:
-- Load and preprocess molecular data from CSV files.  
-- Train a GNN model with both supervised and self-supervised tasks.  
-- Optionally adapt the encoder part of the model with test-time adaptation for better performance on unseen data.  
+Molecular solubility prediction is crucial for various chemical and pharmaceutical applications, but models often struggle with out-of-distribution data. This project addresses this challenge by implementing test-time adaptation techniques for graph neural networks and applying them to molecular solubility prediction.
 
-The key scripts can be found in the Jupyter Notebook `Molecular-Test-TIme-Adaptation.ipynb`.
+This project was carried out as part of the seminar **165.164 Selected Topics in Theoretical Chemistry** at TU Wien, under the supervision of [Prof. Esther Heid](https://hesther.github.io/).
 
-This project is inspired by the works of x et al. and y et al.
+### Key Features
+- 📊 Load and preprocess molecular data from CSV files
+- 🧠 Y-shaped GNN architecture with shared encoder and dual task-specific heads
+- 🎯 Combined supervised and self-supervised training
+- 🔄 Test-time adaptation for improved generalization to unseen data
+- 📈 Comprehensive performance analysis and visualization
+
+### Related work
+- Cui, T., et al. "Online test-time adaptation for better generalization of interatomic potentials to out-of-distribution data." *Nature Communications* 16, 1891 (2025). [DOI](https://doi.org/10.1038/s41467-025-57101-4)
+- Zhang, K., et al. "A survey of deep graph learning under distribution shifts." *arXiv preprint* (2024). [arXiv:2410.19265](https://arxiv.org/abs/2410.19265)
+- Wang, Y., et al. "Test-time training for graph neural networks." *arXiv preprint* (2022). [arXiv:2210.08813](https://arxiv.org/abs/2210.08813)
+
+### Data source
+- Llompart, P., et al. "Will we ever be able to accurately predict solubility?" *Scientific Data* 11, 303 (2024). [DOI](https://doi.org/10.1038/s41597-024-03105-6)
 
 ---
 
 ## Getting Started
 
-### 1. Clone the repository
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/p0017/Molecular-Test-Time-Adaptation.git
 cd Molecular-Test-Time-Adaptation
 ```
 
-### 2. Install required packages
-Set up a conda environment. This can take a few minutes.
+### 2. Set Up Environment
+Create and activate the conda environment. This could take a few minutes. 
 ```bash
 conda env create -f environment.yml
 conda activate molecular
 ```
 
-### 4. Train the Model
-Open the notebook and set:
-- `train_hyperparam_opt` to `False` or `True` (to toggle train hyperparameter optimization via Optuna).
-- `test_hyperparam_opt` to `False` or `True` (to toggle test hyperparameter optimization via Optuna).  
-- `load_trained_model` to `False` if you want to train from scratch.  
-- `save_model = True` if you wish to store the best model.
+### 3. Configure and Run
+Open `Molecular-Test-Time-Adaptation.ipynb` and configure the following parameters.
 
-Then run all cells.
+| Parameter | Description |
+|-----------|-------------|
+| `train_hyperparam_opt` | Enable hyperparameter optimization during training |
+| `test_hyperparam_opt` | Enable hyperparameter optimization for TTA |
+| `save_model` | Save the best performing model |
+| `load_trained_model` | Load pre-trained model instead of training from scratch |
+| `save_plots` | Save training and analysis plots |
 
----
-
-## Project Files
-- **Molecular-Test-TIme-Adaptation.ipynb**: Is the main Jupyter Notebook.
-- **data_utils.py**: Provides functions and classes for data loading and preprocessing.  
-- **model_utils.py**: Contains the model architecture.  
-- **train_test_utils.py**: Includes functions for training and predicting with and without TTA.
+Then run all cells in the notebook.
 
 ---
 
-## Acknoledgements
+## Project Structure
 
-This project was carried out as part of the seminar **165.164 Selected Topics in Theoretical Chemistry** at TU Wien, under the supervision of Prof. Esther Heid.
+```
+Molecular-Test-Time-Adaptation/
+├── Molecular-Test-Time-Adaptation.ipynb  # 📓 Main notebook
+├── environment.yml                        # 📦 Conda environment specification
+├── figures/                               # 📈 Generated plots and figures
+├── utils/                                 # 🛠️ Utility modules
+│   ├── data_utils.py                      # 📊 Data loading and preprocessing
+│   ├── model_utils.py                     # 🏗️ GNN model architecture
+│   └── train_test_utils.py                # 🎯 Training and TTA functions
+├── models/                                # 💾 Saved model checkpoints
+└── data/                                  # 📁 Dataset files
+```
+
+---

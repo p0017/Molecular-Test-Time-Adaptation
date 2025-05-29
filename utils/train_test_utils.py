@@ -5,11 +5,13 @@ import math
 from copy import deepcopy
 import torch
 import torch.nn as nn
+from beartype import beartype
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class Standardizer:
-    # Standardizer for the solubility values
+    """A standardizer for solubility values that normalizes data using mean and standard deviation.
+    """
     def __init__(self, mean: float, std: float):
         self.mean = mean
         self.std = std
@@ -20,8 +22,21 @@ class Standardizer:
         return (x - self.mean) / self.std
 
 
+@beartype
 def train_epoch(model, loader, optimizer, loss, alpha: float, stdzer: Standardizer=None):
-    # Train the model for one epoch on the denoising and prediction tasks simultaneously
+    """Train the model for one epoch on denoising and prediction tasks simultaneously.
+    Uses a weighted combination of denoising loss (alpha) and prediction loss (1-alpha)
+    to train the model on both self-supervised and supervised objectives.
+    Args:
+        model: The neural network model to train
+        loader: DataLoader containing training batches
+        optimizer: Optimizer for updating model parameters
+        loss: Loss function to compute training losses
+        alpha: Weight for denoising loss (0-1), prediction loss gets (1-alpha)
+        stdzer: Standardizer for target values, optional
+    Returns:
+        tuple: (total_loss_rmse, denoise_loss_rmse, pred_loss_rmse) averaged over dataset
+    """
     model.train()
     total_loss_count = 0
     denoise_loss_count = 0
@@ -68,9 +83,21 @@ def train_epoch(model, loader, optimizer, loss, alpha: float, stdzer: Standardiz
     return math.sqrt(total_loss_count / len(loader.dataset)), math.sqrt(denoise_loss_count / len(loader.dataset)), math.sqrt(pred_loss_count / len(loader.dataset))
 
 
+@beartype
 def train_epoch_without_SSL(model, loader, optimizer, loss, alpha: float, stdzer: Standardizer):
-    # Train the model for one epoch on the prediction task only
-    # This is only needed for reference
+    """Train the model for one epoch on the prediction task only without SSL.
+    Unfreezes the encoder and prediction head while freezing the decoder.
+    Used as a reference implementation for training without self-supervised learning.
+    Args:
+        model: The neural network model to train
+        loader: DataLoader containing training batches
+        optimizer: Optimizer for updating model parameters
+        loss: Loss function for prediction task
+        alpha: Weight parameter (kept for reference, doesn't affect training)
+        stdzer: Standardizer for target values
+    Returns:
+        float: Root mean squared prediction loss over the epoch
+    """
 
     # Unfreeze the encoder
     for param in model.encoder.parameters():
@@ -107,9 +134,20 @@ def train_epoch_without_SSL(model, loader, optimizer, loss, alpha: float, stdzer
     return math.sqrt(pred_loss_count / len(loader.dataset))
 
 
+@beartype
 def pred(model, loader, mode: str, stdzer: Standardizer):
-    # Predict with the model, either on denoising or prediction task
-    # No test-time adaptation here, just a simple forward pass
+    """Predict with the model on either denoising or prediction task.
+    Performs a simple forward pass without test-time adaptation.
+    Args:
+        model: The neural network model to use for prediction
+        loader: DataLoader containing the batches to process
+        mode: Either 'denoise' or 'predict' to specify the task
+        stdzer: Standardizer for reverse transformation in predict mode
+    Returns:
+        list: Flattened predictions from the model
+    Raises:
+        ValueError: If mode is not 'denoise' or 'predict'
+    """
     if mode == 'denoise':
         model.set_mode('denoise')
         model.eval()
@@ -142,9 +180,19 @@ def pred(model, loader, mode: str, stdzer: Standardizer):
         raise ValueError("Invalid mode. Choose 'denoise' or 'predict'.")
     
 
+@beartype
 def pred_with_TTA(model, loader, lr: float, stdzer:Standardizer):
-    # Predict with test-time adaptation (TTA)
-    # We want a batch size of 1 for this
+    """Perform predictions with test-time adaptation (TTA) using a batch size of 1.
+    The function unfreezes the encoder and decoder while keeping the prediction head frozen,
+    then adapts the model on each test sample using denoising loss before making predictions.
+    Args:
+        model: The neural network model to adapt and use for predictions
+        loader: DataLoader containing test samples (should have batch size of 1)
+        lr (float): Learning rate for the adaptation optimizer
+        stdzer (Standardizer): Standardizer object for reversing normalization of predictions
+    Returns:
+        list: List of predictions after test-time adaptation
+    """
 
     # Unfreeze the encoder
     for param in model.encoder.parameters():
@@ -193,8 +241,19 @@ def pred_with_TTA(model, loader, lr: float, stdzer:Standardizer):
     return preds
 
 
+@beartype
 def embeddings_with_TTA(model, loader, lr: float):
-    # Get embeddings with test-time adaptation (TTA)
+    """Get embeddings with test-time adaptation (TTA).
+    Performs test-time adaptation by unfreezing encoder and decoder, freezing the 
+    prediction head, and training on denoising task for each batch. Returns 
+    embeddings after adaptation.
+    Args:
+        model: The neural network model to adapt
+        loader: DataLoader containing batches for adaptation
+        lr (float): Learning rate for the adaptation optimizer
+    Returns:
+        list: List of embeddings after test-time adaptation
+    """
 
     # Unfreeze the encoder
     for param in model.encoder.parameters():
