@@ -15,14 +15,11 @@ from beartype import beartype
 @beartype
 def one_hot_encoding_unk(value, choices: list) -> list:
     """One hot encoding with unknown value handling.
-
     If the value is in choices, it puts a 1 at the corresponding index.
     Otherwise, it puts a 1 at the last index (unknown).
-
     Args:
         value: The value to encode
-        choices: List of known/valid choices
-        
+        choices: List of known/valid choices 
     Returns:
         list: One-hot encoded vector with length len(choices) + 1
     """
@@ -34,10 +31,8 @@ def one_hot_encoding_unk(value, choices: list) -> list:
 
 def get_atom_features(atom) -> list:
     """Returns a feature list for the atom by concatenating one-hot encodings.
-    
     Args:
         atom: RDKit atom object
-        
     Returns:
         list: Flattened list of atom features including symbol, degree, charge,
               hydrogen count, hybridization, aromaticity, and mass
@@ -95,7 +90,7 @@ def get_bond_features(bond) -> list:
 @beartype
 class MolGraph:
     """Custom molecular graph for a given SMILES string.
-    This class creates a graph of a molecule containing atom features,
+    Creates a graph of a molecule containing atom features,
     bond features, and node connectivity information.
     Args:
         smiles (str): SMILES string representation of the molecule
@@ -164,10 +159,8 @@ class ChemDataset(Dataset):
 
     def process_key(self, key):
         """Process a key to retrieve the corresponding molecule graph data.
-        
         Returns cached molecule if available, otherwise creates a new MolGraph
         from SMILES string and caches the result.
-        
         Args:
             key: Index or identifier for the molecule
             

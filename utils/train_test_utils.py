@@ -23,7 +23,7 @@ class Standardizer:
 
 
 @beartype
-def train_epoch(model, loader, optimizer, loss, alpha: float, stdzer: Standardizer=None):
+def train_epoch(model, loader, optimizer, loss, alpha: float, stdzer: Standardizer=None) -> tuple:
     """Train the model for one epoch on denoising and prediction tasks simultaneously.
     Uses a weighted combination of denoising loss (alpha) and prediction loss (1-alpha)
     to train the model on both self-supervised and supervised objectives.
@@ -84,7 +84,7 @@ def train_epoch(model, loader, optimizer, loss, alpha: float, stdzer: Standardiz
 
 
 @beartype
-def train_epoch_without_SSL(model, loader, optimizer, loss, alpha: float, stdzer: Standardizer):
+def train_epoch_without_SSL(model, loader, optimizer, loss, alpha: float, stdzer: Standardizer) -> float:
     """Train the model for one epoch on the prediction task only without SSL.
     Unfreezes the encoder and prediction head while freezing the decoder.
     Used as a reference implementation for training without self-supervised learning.
@@ -135,7 +135,7 @@ def train_epoch_without_SSL(model, loader, optimizer, loss, alpha: float, stdzer
 
 
 @beartype
-def pred(model, loader, mode: str, stdzer: Standardizer):
+def pred(model, loader, mode: str, stdzer: Standardizer) -> list:
     """Predict with the model on either denoising or prediction task.
     Performs a simple forward pass without test-time adaptation.
     Args:
@@ -181,10 +181,10 @@ def pred(model, loader, mode: str, stdzer: Standardizer):
     
 
 @beartype
-def pred_with_TTA(model, loader, lr: float, stdzer:Standardizer):
+def pred_with_TTA(model, loader, lr: float, stdzer:Standardizer) -> list:
     """Perform predictions with test-time adaptation (TTA) using a batch size of 1.
     The function unfreezes the encoder and decoder while keeping the prediction head frozen,
-    then adapts the model on each test sample using denoising loss before making predictions.
+    then performs a single training step on each test sample using denoising loss before making predictions.
     Args:
         model: The neural network model to adapt and use for predictions
         loader: DataLoader containing test samples (should have batch size of 1)
@@ -242,11 +242,10 @@ def pred_with_TTA(model, loader, lr: float, stdzer:Standardizer):
 
 
 @beartype
-def embeddings_with_TTA(model, loader, lr: float):
-    """Get embeddings with test-time adaptation (TTA).
-    Performs test-time adaptation by unfreezing encoder and decoder, freezing the 
-    prediction head, and training on denoising task for each batch. Returns 
-    embeddings after adaptation.
+def embeddings_with_TTA(model, loader, lr: float) -> list:
+    """Get embeddings with test-time adaptation (TTA) using a batch size of 1.
+    The function unfreezes the encoder and decoder while keeping the prediction head frozen,
+    then performs a single training step on each test sample using denoising loss before getting embeddings.
     Args:
         model: The neural network model to adapt
         loader: DataLoader containing batches for adaptation

@@ -9,9 +9,8 @@ from beartype import beartype
 
 
 class DMPNNConv(MessagePassing): 
-    """DMPNN (Directed Message Passing Neural Network) convolution layer extending PyTorch Geometric's MessagePassing.
-    Used for convolutional layers in the encoder with sum aggregation for bidirectional edge processing.
-    Each edge undergoes two message passings, one for each direction.
+    """DMPNN convolution layer extending PyTorch Geometric's MessagePassing.
+    Each edge undergoes two message passings with sum aggregation, one for each direction.
     Args:
         hidden_size (int): Size of the hidden representations for the convolution layer.
     """
@@ -33,7 +32,7 @@ class DMPNNConv(MessagePassing):
     
 
 class GNNEncoder(nn.Module):
-    """A Graph Neural Network encoder using DMPNN (Directed Message Passing Neural Network) convolutions.
+    """A GNN encoder using DMPNN convolutions.
     This encoder can operate in two modes: 'denoise' (using noisy features) or 'predict' (using clean features).
     It processes molecular graphs by performing message passing on edges, then aggregating to nodes,
     and finally pooling to create graph-level embeddings.
@@ -126,7 +125,7 @@ class GNNEncoder(nn.Module):
     
 
 class GNNDecoder(nn.Module):
-    """A Graph Neural Network decoder that reconstructs node and edge features from graph-level embeddings.
+    """A GNN decoder that reconstructs node and edge features from graph-level embeddings.
     This module takes graph-level embeddings and decodes them back to node and edge features
     by expanding the graph embeddings to match the original graph structure.
         hidden_size (int): Dimension of the input graph embeddings
@@ -190,7 +189,7 @@ class GNNDecoder(nn.Module):
 @beartype
 class GNNHead(nn.Module):
     """Initialize GNN prediction head for solubility prediction.
-    Creates a simple feedforward network with two linear layers and dropout
+    Creates a simple FFN with two linear layers and dropout
     to predict solubility from graph embeddings.
     Args:
         hidden_size (int): Size of hidden layers and input embedding dimension
@@ -239,7 +238,6 @@ class GNN(nn.Module):
 
     def set_mode(self, mode: str):
         """Set the mode for the encoder to specify whether to read noisy or noise-free data.
-        
         Args:
             mode (str): The mode to set for the encoder.
         """
@@ -247,10 +245,8 @@ class GNN(nn.Module):
 
     def get_embedding(self, data):
         """Get the graph embedding from the encoder.
-        
         Args:
             data: Input data to be encoded.
-            
         Returns:
             Graph embedding tensor from the encoder.
         """
