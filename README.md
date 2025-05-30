@@ -3,7 +3,7 @@
 This repository investigates applying graph neural networks (GNNs) to predict molecular solubility of unseen data, using test-time adaptation (TTA).
 
 <p align="center">
-  <img src="figures/sets_TTA.jpg" width="750" />
+  <img src="figures/sets_TTA.jpg" width="1000" />
 </p>
 
 ---
