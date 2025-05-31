@@ -6,24 +6,27 @@ from copy import deepcopy
 import torch
 import torch.nn as nn
 from beartype import beartype
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class Standardizer:
-    """A standardizer for solubility values that normalizes data using mean and standard deviation.
-    """
+    """A standardizer for solubility values that normalizes data using mean and standard deviation."""
+
     def __init__(self, mean: float, std: float):
         self.mean = mean
         self.std = std
 
-    def __call__(self, x, rev: bool=False):
+    def __call__(self, x, rev: bool = False):
         if rev:
             return (x * self.std) + self.mean
         return (x - self.mean) / self.std
 
 
 @beartype
-def train_epoch(model, loader, optimizer, loss, alpha: float, stdzer: Standardizer=None) -> tuple:
+def train_epoch(
+    model, loader, optimizer, loss, alpha: float, stdzer: Standardizer = None
+) -> tuple:
     """Train the model for one epoch on denoising and prediction tasks simultaneously.
     Uses a weighted combination of denoising loss (alpha) and prediction loss (1-alpha)
     to train the model on both self-supervised and supervised objectives.
@@ -51,14 +54,14 @@ def train_epoch(model, loader, optimizer, loss, alpha: float, stdzer: Standardiz
         optimizer.zero_grad()
 
         # Get losses for the denoising task
-        model.set_mode('denoise')
+        model.set_mode("denoise")
         node_out, edge_out = model(batch)
         node_loss = loss(node_out, batch.x)
         edge_loss = loss(edge_out, batch.edge_attr)
         denoise_loss = alpha * (node_loss + edge_loss)
 
         # Get losses for the prediction task
-        model.set_mode('predict')
+        model.set_mode("predict")
         pred_out = model(batch)
         pred_loss = (1 - alpha) * loss(pred_out, stdzer(batch.y))
 
@@ -80,11 +83,17 @@ def train_epoch(model, loader, optimizer, loss, alpha: float, stdzer: Standardiz
         denoise_loss_count += denoise_loss.item()
         pred_loss_count += pred_loss.item()
 
-    return math.sqrt(total_loss_count / len(loader.dataset)), math.sqrt(denoise_loss_count / len(loader.dataset)), math.sqrt(pred_loss_count / len(loader.dataset))
+    return (
+        math.sqrt(total_loss_count / len(loader.dataset)),
+        math.sqrt(denoise_loss_count / len(loader.dataset)),
+        math.sqrt(pred_loss_count / len(loader.dataset)),
+    )
 
 
 @beartype
-def train_epoch_without_SSL(model, loader, optimizer, loss, alpha: float, stdzer: Standardizer) -> float:
+def train_epoch_without_SSL(
+    model, loader, optimizer, loss, alpha: float, stdzer: Standardizer
+) -> float:
     """Train the model for one epoch on the prediction task only without SSL.
     Unfreezes the encoder and prediction head while freezing the decoder.
     Used as a reference implementation for training without self-supervised learning.
@@ -120,7 +129,7 @@ def train_epoch_without_SSL(model, loader, optimizer, loss, alpha: float, stdzer
         optimizer.zero_grad()
 
         # Get losses for the prediction task
-        model.set_mode('predict')
+        model.set_mode("predict")
         pred_out = model(batch)
         # We keep the alpha weight for reference, but it doesn't matter here
         pred_loss = (1 - alpha) * loss(pred_out, stdzer(batch.y))
@@ -148,8 +157,8 @@ def pred(model, loader, mode: str, stdzer: Standardizer) -> list:
     Raises:
         ValueError: If mode is not 'denoise' or 'predict'
     """
-    if mode == 'denoise':
-        model.set_mode('denoise')
+    if mode == "denoise":
+        model.set_mode("denoise")
         model.eval()
 
         preds = []
@@ -158,12 +167,15 @@ def pred(model, loader, mode: str, stdzer: Standardizer) -> list:
                 batch = batch.to(device)
                 node_out, edge_out = model(batch)
                 node_out.cpu().detach().flatten().tolist()
-                preds.extend(node_out.cpu().detach().flatten().tolist() + edge_out.cpu().detach().flatten().tolist())
-                
+                preds.extend(
+                    node_out.cpu().detach().flatten().tolist()
+                    + edge_out.cpu().detach().flatten().tolist()
+                )
+
         return preds
 
-    elif mode == 'predict':
-        model.set_mode('predict')
+    elif mode == "predict":
+        model.set_mode("predict")
         model.eval()
 
         preds = []
@@ -175,13 +187,13 @@ def pred(model, loader, mode: str, stdzer: Standardizer) -> list:
                 preds.extend(pred.cpu().detach().tolist())
 
         return preds
-    
+
     else:
         raise ValueError("Invalid mode. Choose 'denoise' or 'predict'.")
-    
+
 
 @beartype
-def pred_with_TTA(model, loader, lr: float, stdzer:Standardizer) -> list:
+def pred_with_TTA(model, loader, lr: float, stdzer: Standardizer) -> list:
     """Perform predictions with test-time adaptation (TTA) using a batch size of 1.
     The function unfreezes the encoder and decoder while keeping the prediction head frozen,
     then performs a single training step on each test sample using denoising loss before making predictions.
@@ -209,7 +221,7 @@ def pred_with_TTA(model, loader, lr: float, stdzer:Standardizer) -> list:
     model = deepcopy(model).to(device)
     model_before_step = deepcopy(model).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    loss = nn.MSELoss(reduction='mean')
+    loss = nn.MSELoss(reduction="mean")
 
     preds = []
 
@@ -217,9 +229,9 @@ def pred_with_TTA(model, loader, lr: float, stdzer:Standardizer) -> list:
         batch = batch.to(device)
         optimizer.zero_grad()
 
-        model.set_mode('denoise')
+        model.set_mode("denoise")
         model.train()
-        
+
         node_out, edge_out = model(batch)
         node_loss = loss(node_out, batch.x)
         edge_loss = loss(edge_out, batch.edge_attr)
@@ -228,7 +240,7 @@ def pred_with_TTA(model, loader, lr: float, stdzer:Standardizer) -> list:
         denoise_loss.backward()
         optimizer.step()
 
-        model.set_mode('predict')
+        model.set_mode("predict")
         model.eval()
 
         with torch.no_grad():
@@ -237,7 +249,7 @@ def pred_with_TTA(model, loader, lr: float, stdzer:Standardizer) -> list:
             preds.extend(pred.cpu().detach().tolist())
 
         model = deepcopy(model_before_step)
-        
+
     return preds
 
 
@@ -269,7 +281,7 @@ def embeddings_with_TTA(model, loader, lr: float) -> list:
     model = deepcopy(model).to(device)
     model_before_step = deepcopy(model).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    loss = nn.MSELoss(reduction='mean')
+    loss = nn.MSELoss(reduction="mean")
 
     embeddings = []
 
@@ -277,9 +289,9 @@ def embeddings_with_TTA(model, loader, lr: float) -> list:
         batch = batch.to(device)
         optimizer.zero_grad()
 
-        model.set_mode('denoise')
+        model.set_mode("denoise")
         model.train()
-        
+
         node_out, edge_out = model(batch)
         node_loss = loss(node_out, batch.x)
         edge_loss = loss(edge_out, batch.edge_attr)
@@ -288,7 +300,7 @@ def embeddings_with_TTA(model, loader, lr: float) -> list:
         denoise_loss.backward()
         optimizer.step()
 
-        model.set_mode('predict')
+        model.set_mode("predict")
         model.eval()
 
         with torch.no_grad():
@@ -297,5 +309,5 @@ def embeddings_with_TTA(model, loader, lr: float) -> list:
             embeddings.extend(embedding.cpu().detach().numpy())
 
         model = deepcopy(model_before_step)
-        
+
     return embeddings

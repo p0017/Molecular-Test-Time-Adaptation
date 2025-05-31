@@ -19,7 +19,7 @@ def one_hot_encoding_unk(value, choices: list) -> list:
     Otherwise, it puts a 1 at the last index (unknown).
     Args:
         value: The value to encode
-        choices: List of known/valid choices 
+        choices: List of known/valid choices
     Returns:
         list: One-hot encoded vector with length len(choices) + 1
     """
@@ -38,21 +38,44 @@ def get_atom_features(atom) -> list:
               hydrogen count, hybridization, aromaticity, and mass
     """
     atom_features = [
-        one_hot_encoding_unk(atom.GetSymbol(), ['B','Be','Br','C','Cl','F','I','N','Nb','O','P','S','Se','Si','V','W']),
+        one_hot_encoding_unk(
+            atom.GetSymbol(),
+            [
+                "B",
+                "Be",
+                "Br",
+                "C",
+                "Cl",
+                "F",
+                "I",
+                "N",
+                "Nb",
+                "O",
+                "P",
+                "S",
+                "Se",
+                "Si",
+                "V",
+                "W",
+            ],
+        ),
         one_hot_encoding_unk(atom.GetTotalDegree(), [0, 1, 2, 3, 4, 5]),
         one_hot_encoding_unk(atom.GetFormalCharge(), [-1, -2, 1, 2, 0]),
         one_hot_encoding_unk(int(atom.GetTotalNumHs()), [0, 1, 2, 3, 4]),
-        one_hot_encoding_unk(int(atom.GetHybridization()),[
-                                                        Chem.rdchem.HybridizationType.SP,
-                                                        Chem.rdchem.HybridizationType.SP2,
-                                                        Chem.rdchem.HybridizationType.SP3,
-                                                        Chem.rdchem.HybridizationType.SP3D,
-                                                        Chem.rdchem.HybridizationType.SP3D2
-                                                        ]),
+        one_hot_encoding_unk(
+            int(atom.GetHybridization()),
+            [
+                Chem.rdchem.HybridizationType.SP,
+                Chem.rdchem.HybridizationType.SP2,
+                Chem.rdchem.HybridizationType.SP3,
+                Chem.rdchem.HybridizationType.SP3D,
+                Chem.rdchem.HybridizationType.SP3D2,
+            ],
+        ),
         [1 if atom.GetIsAromatic() else 0],
-        [atom.GetMass() * 0.01]
+        [atom.GetMass() * 0.01],
     ]
-    return sum(atom_features, []) # Flatten the list into a single list
+    return sum(atom_features, [])  # Flatten the list into a single list
 
 
 def get_bond_features(bond) -> list:
@@ -82,7 +105,7 @@ def get_bond_features(bond) -> list:
             bt == Chem.rdchem.BondType.TRIPLE,
             bt == Chem.rdchem.BondType.AROMATIC,
             (bond.GetIsConjugated() if bt is not None else 0),
-            (bond.IsInRing() if bt is not None else 0)
+            (bond.IsInRing() if bt is not None else 0),
         ]
     return bond_features
 
@@ -100,6 +123,7 @@ class MolGraph:
         bond_features (list): List of bond feature vectors (stored twice for each bond)
         edge_index (list): List of tuples representing connected atom pairs
     """
+
     def __init__(self, smiles: str):
         self.smiles = smiles
         self.atom_features = []
@@ -110,7 +134,9 @@ class MolGraph:
         n_atoms = molecule.GetNumAtoms()
 
         for atom_1 in range(n_atoms):
-            self.atom_features.append(get_atom_features(molecule.GetAtomWithIdx(atom_1)))
+            self.atom_features.append(
+                get_atom_features(molecule.GetAtomWithIdx(atom_1))
+            )
 
             for atom_2 in range(atom_1 + 1, n_atoms):
                 bond = molecule.GetBondBetweenAtoms(atom_1, atom_2)
@@ -118,21 +144,32 @@ class MolGraph:
                     continue
                 bond_features = get_bond_features(bond)
                 self.bond_features.append(bond_features)
-                self.bond_features.append(bond_features) # Bond features are added twice for both directions
-                self.edge_index.extend([(atom_1, atom_2), (atom_2, atom_1)]) # Edge index list with tuples of connected nodes instead of adjacency matrix
+                self.bond_features.append(
+                    bond_features
+                )  # Bond features are added twice for both directions
+                self.edge_index.extend(
+                    [(atom_1, atom_2), (atom_2, atom_1)]
+                )  # Edge index list with tuples of connected nodes instead of adjacency matrix
 
 
 class ChemDataset(Dataset):
     @beartype
-    def __init__(self, smiles: np.ndarray, labels, flip_prob: float=0.25, noise_std: float=0.25, precompute: bool=True):
+    def __init__(
+        self,
+        smiles: np.ndarray,
+        labels,
+        flip_prob: float = 0.25,
+        noise_std: float = 0.25,
+        precompute: bool = True,
+    ):
         """Initialize ChemDataset with SMILES strings and labels.
         Args:
             smiles (np.ndarray): SMILES molecular representations
             labels: Target labels for the molecules
-            flip_prob (float, optional): Probability of flipping bits for denoising task. 
+            flip_prob (float, optional): Probability of flipping bits for denoising task.
                 Defaults to 0.25. Reference: denoising autoencoders use ~10%, BERT uses 15%.
             noise_std (float, optional): Standard deviation for noise addition. Defaults to 0.25.
-            precompute (bool, optional): Whether to precompute dataset for faster GPU training. 
+            precompute (bool, optional): Whether to precompute dataset for faster GPU training.
                 Defaults to True.
         """
         super(ChemDataset, self).__init__()
@@ -148,7 +185,7 @@ class ChemDataset(Dataset):
             print(f"Precomputing data...")
             with ThreadPoolExecutor(max_workers=4) as executor:
                 futures = [
-                    executor.submit(self.process_key , idx)
+                    executor.submit(self.process_key, idx)
                     for idx in range(len(self.smiles))
                 ]
 
@@ -163,7 +200,7 @@ class ChemDataset(Dataset):
         from SMILES string and caches the result.
         Args:
             key: Index or identifier for the molecule
-            
+
         Returns:
             Processed molecule data object
         """
@@ -182,14 +219,16 @@ class ChemDataset(Dataset):
             molgraph: Molecular graph object containing atom_features, edge_index, and bond_features
             key: Index key to retrieve corresponding labels and SMILES from stored data
         Returns:
-            tg.data.Data: PyTorch Geometric data object with node features, edge indices, 
-                          edge attributes, labels, SMILES, and optionally noisy versions 
+            tg.data.Data: PyTorch Geometric data object with node features, edge indices,
+                          edge attributes, labels, SMILES, and optionally noisy versions
                           of features if augmentation is enabled
         """
         data = tg.data.Data()
-        
+
         data.x = torch.tensor(molgraph.atom_features, dtype=torch.float)
-        data.edge_index = torch.tensor(molgraph.edge_index, dtype=torch.long).t().contiguous()
+        data.edge_index = (
+            torch.tensor(molgraph.edge_index, dtype=torch.long).t().contiguous()
+        )
         data.edge_attr = torch.tensor(molgraph.bond_features, dtype=torch.float)
         data.y = torch.tensor([self.labels[key]], dtype=torch.float)
         data.smiles = self.smiles[key]
@@ -198,34 +237,46 @@ class ChemDataset(Dataset):
             # Create a deep copy to avoid modifying original data
             x_noisy = deepcopy(data.x)
             edge_attr_noisy = deepcopy(data.edge_attr)
-            
+
             # Apply bit flipping to binary features if probability > 0
             if self.flip_prob > 0:
-                binary_features = x_noisy[:, :-1]  # All but last column, which contains mass
+                binary_features = x_noisy[
+                    :, :-1
+                ]  # All but last column, which contains mass
                 flip_mask = torch.rand_like(binary_features) < self.flip_prob
-                binary_features[flip_mask] = 1.0 - binary_features[flip_mask]  # Flip 0->1 and 1->0
+                binary_features[flip_mask] = (
+                    1.0 - binary_features[flip_mask]
+                )  # Flip 0->1 and 1->0
                 x_noisy[:, :-1] = deepcopy(binary_features)
 
-                binary_features = edge_attr_noisy # Edge features only contain one-hot encodings
+                binary_features = (
+                    edge_attr_noisy  # Edge features only contain one-hot encodings
+                )
                 flip_mask = torch.rand_like(binary_features) < self.flip_prob
-                binary_features[flip_mask] = 1.0 - binary_features[flip_mask]  # Flip 0->1 and 1->0
+                binary_features[flip_mask] = (
+                    1.0 - binary_features[flip_mask]
+                )  # Flip 0->1 and 1->0
                 edge_attr_noisy = deepcopy(binary_features)
-            
+
             # Apply Gaussian noise to continuous feature if std > 0
             if self.noise_std > 0:
-                mass_feature = x_noisy[:, -1:]  # Just the last column, which contains mass
+                mass_feature = x_noisy[
+                    :, -1:
+                ]  # Just the last column, which contains mass
                 # Adding noise which is a percentage of the mass feature
-                mass_feature += mass_feature * torch.randn_like(mass_feature) * self.noise_std
+                mass_feature += (
+                    mass_feature * torch.randn_like(mass_feature) * self.noise_std
+                )
                 x_noisy[:, -1:] = deepcopy(mass_feature)
-            
+
             data.x_noisy = x_noisy
             data.edge_attr_noisy = edge_attr_noisy
 
         return data
 
-    def get(self,key):
+    def get(self, key):
         return self.process_key(key)
-    
+
     def __getitem__(self, key):
         # Standard get method for PyTorch Dataset
         return self.process_key(key)
@@ -236,10 +287,16 @@ class ChemDataset(Dataset):
     def __len__(self):
         # Standard len method for PyTorch Dataset
         return len(self.smiles)
-    
+
 
 @beartype
-def construct_loader(data_df: pd.DataFrame, smiles_column: str, target_column: str, shuffle: bool=True, batch_size: int=16):  
+def construct_loader(
+    data_df: pd.DataFrame,
+    smiles_column: str,
+    target_column: str,
+    shuffle: bool = True,
+    batch_size: int = 16,
+):
     """Constructs a PyTorch Geometric DataLoader from a DataFrame containing SMILES and target data.
     Args:
         data_df (pd.DataFrame): Input DataFrame containing molecular data
@@ -253,14 +310,12 @@ def construct_loader(data_df: pd.DataFrame, smiles_column: str, target_column: s
         AssertionError: If the input DataFrame is empty
     """
     assert len(data_df) > 0, "DataFrame is empty"
-        
+
     smiles = data_df[smiles_column].values
-    labels = data_df[target_column].values.astype(np.float32)  
+    labels = data_df[target_column].values.astype(np.float32)
 
     dataset = ChemDataset(smiles, labels)
-    loader = DataLoader(dataset=dataset,
-                            batch_size=batch_size,
-                            shuffle=shuffle,
-                            pin_memory=True
-                        )
+    loader = DataLoader(
+        dataset=dataset, batch_size=batch_size, shuffle=shuffle, pin_memory=True
+    )
     return loader
