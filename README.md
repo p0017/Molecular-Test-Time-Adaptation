@@ -39,7 +39,7 @@ git clone https://github.com/p0017/Molecular-Test-Time-Adaptation.git
 cd Molecular-Test-Time-Adaptation
 ```
 
-### 2. Set Up Environment
+### 2. Set up the Environment
 Create and activate the conda environment. This could take a few minutes. 
 ```bash
 conda env create -f environment.yml
@@ -65,7 +65,7 @@ Then run all cells in the notebook.
 
 ```
 Molecular-Test-Time-Adaptation/
-├── Molecular-Test-Time-Adaptation.ipynb  # 📓 Main notebook
+├── Molecular-Test-Time-Adaptation.ipynb   # 📓 Main notebook
 ├── environment.yml                        # 📦 Conda environment specification
 ├── figures/                               # 📈 Generated plots and figures
 ├── utils/                                 # 🛠️ Utility modules
