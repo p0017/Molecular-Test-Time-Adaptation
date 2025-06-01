@@ -22,7 +22,7 @@
 \maketitle
 
 \begin{abstract}
-        Molecular solubility prediction is a critical task in drug discovery, but models often struggle with out-of-distribution data. This project addresses this challenge by implementing test-time adaptation techniques for graph neural networks and applying them to molecular solubility prediction.
+        Molecular solubility prediction is a critical task in drug discovery, but models often struggle with out-of-distribution data. This project addresses this challenge by implementing test-time adaptation for graph neural networks and applying it to molecular solubility prediction.
 
         This project was carried out as part of the seminar \textbf{165.164 Selected Topics in Theoretical Chemistry} at TU Wien, under the supervision of \href{https://hesther.github.io/}{Prof. Esther Heid}.
 \end{abstract}
@@ -112,9 +112,7 @@ For comparison, a reference model trained solely on the prediction task without 
 
 \section{Conclusion}
 
-\section{Conclusion}
-
-This project investigated the application of TTA to GNNs for molecular solubility prediction across different datasets. While TTA successfully shifted the test set embeddings towards the training distribution, as demonstrated through embedding space visualizations, this did not translate into improved predictive performance on the test set used here.
+This project applied test-time adaptation to graph neural networks for molecular solubility prediction. While TTA successfully shifted the test set embeddings towards the training distribution, as demonstrated through embedding space visualizations, this did not translate into improved predictive performance on the test set used here.
 
 \bibliographystyle{plain}
 \bibliography{references}
