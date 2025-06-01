@@ -74,7 +74,7 @@ Molecular-Test-Time-Adaptation/
 │   ├── model_utils.py                     # 🏗️ GNN model architecture
 │   └── train_test_utils.py                # 🎯 Training and TTA functions
 ├── models/                                # 💾 Saved model checkpoints
-├── documentation/                         # 📝 Project documentation
+├── report/                                # 📝 Project report
 └── data/                                  # 📁 Dataset files
 ```
 
