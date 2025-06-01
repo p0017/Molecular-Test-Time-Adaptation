@@ -38,10 +38,10 @@ def train_epoch(
         alpha: Weight for denoising loss (0-1), prediction loss gets (1-alpha)
         stdzer: Standardizer for target values, optional
     Returns:
-        tuple: (total_loss_rmse, denoise_loss_rmse, pred_loss_rmse) averaged over dataset
+        tuple: (combined_loss_rmse, denoise_loss_rmse, pred_loss_rmse) averaged over dataset
     """
     model.train()
-    total_loss_count = 0
+    combined_loss_count = 0
     denoise_loss_count = 0
     pred_loss_count = 0
 
@@ -79,12 +79,12 @@ def train_epoch(
         # Also experimented with alternating backpropagation steps for each task
         # Results were worse
 
-        total_loss_count += combined_loss.item()
+        combined_loss_count += combined_loss.item()
         denoise_loss_count += denoise_loss.item()
         pred_loss_count += pred_loss.item()
 
     return (
-        math.sqrt(total_loss_count / len(loader.dataset)),
+        math.sqrt(combined_loss_count / len(loader.dataset)),
         math.sqrt(denoise_loss_count / len(loader.dataset)),
         math.sqrt(pred_loss_count / len(loader.dataset)),
     )

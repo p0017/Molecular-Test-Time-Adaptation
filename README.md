@@ -10,15 +10,15 @@ This repository investigates applying graph neural networks (GNNs) to predict mo
 
 ## Overview
 
-Molecular solubility prediction is crucial for various chemical and pharmaceutical applications, but models often struggle with out-of-distribution data. This project addresses this challenge by implementing test-time adaptation techniques for graph neural networks and applying them to molecular solubility prediction.
+Molecular solubility prediction is a critical task in drug discovery, but models often struggle with out-of-distribution data. This project addresses this challenge by implementing test-time adaptation techniques for graph neural networks and applying them to molecular solubility prediction.
 
 This project was carried out as part of the seminar **165.164 Selected Topics in Theoretical Chemistry** at TU Wien, under the supervision of [Prof. Esther Heid](https://hesther.github.io/).
 
 ### Key Features
-- 📊 Load and preprocess molecular data from CSV files
-- 🧠 Y-shaped GNN architecture with shared encoder and dual task-specific heads
+- 📊 Load and preprocess molecular graphs from CSV files
+- 🧠 Y-shaped GNN architecture with shared encoder and two task-specific heads
 - 🎯 Combined supervised and self-supervised training
-- 🔄 Test-time adaptation for improved generalization to unseen data
+- 🔄 Test-time adaptation for improved generalization on unseen data
 - 📈 Comprehensive performance analysis and visualization
 
 ### Related work
@@ -28,6 +28,7 @@ This project was carried out as part of the seminar **165.164 Selected Topics in
 
 ### Data source
 - Llompart, P., et al. "Will we ever be able to accurately predict solubility?" *Scientific Data* 11, 303 (2024). [DOI](https://doi.org/10.1038/s41597-024-03105-6)
+- Sorkun, M. C., et al. "AqSolDB, a curated reference set of aqueous solubility and 2D descriptors for a diverse set of compounds." *Scientific Data* 6, 143 (2019). [DOI](https://doi.org/10.1038/s41597-019-0151-1)
 
 ---
 
@@ -54,7 +55,7 @@ Open `Molecular-Test-Time-Adaptation.ipynb` and configure the following paramete
 | `train_hyperparam_opt` | Enable hyperparameter optimization during training |
 | `test_hyperparam_opt` | Enable hyperparameter optimization for TTA |
 | `save_model` | Save the best performing model |
-| `load_trained_model` | Load pre-trained model instead of training from scratch |
+| `load_trained_model` | Load trained model instead of training from scratch |
 | `save_plots` | Save training and analysis plots |
 
 Then run all cells in the notebook.
@@ -73,6 +74,7 @@ Molecular-Test-Time-Adaptation/
 │   ├── model_utils.py                     # 🏗️ GNN model architecture
 │   └── train_test_utils.py                # 🎯 Training and TTA functions
 ├── models/                                # 💾 Saved model checkpoints
+├── documentation/                         # 📝 Project documentation
 └── data/                                  # 📁 Dataset files
 ```
 
