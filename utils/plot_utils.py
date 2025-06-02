@@ -186,40 +186,50 @@ def functional_group_histogram(
     ), "Test Data must contain all functional group columns"
 
     # Create 8 subplots for functional group histograms with shared y-axis per row
-    fig, axes = plt.subplots(2, 4, figsize=(8, 6), sharey="row")
+    fig, axes = plt.subplots(2, 4, figsize=(8, 6), sharey="row", sharex="col")
     axes = axes.flatten()
 
     for i, fg in enumerate(functional_groups):
         ax = axes[i]
 
+        # Filter to only include nonzero values
+        train_nonzero = df_train[df_train[fg] > 0][fg]
+        test_nonzero = df_test[df_test[fg] > 0][fg]
+
         # Get the range of values for proper binning
-        max_val = max(df_train[fg].max(), df_test[fg].max())
-        bins = np.arange(
-            -0.5, max_val + 1.5, 1
-        )  # Creates bins centered on integer values
+        max_val = max(train_nonzero.max() if len(train_nonzero) > 0 else 0, 
+                     test_nonzero.max() if len(test_nonzero) > 0 else 0)
+        
+        if max_val > 0:
+            # Create bins with edges at 0.5, 1.5, 2.5, ... to center each integer value
+            bins = np.arange(0.5, max_val + 1.5, 1)
 
-        # Plot histograms for both datasets
-        ax.hist(
-            df_train[fg],
-            bins=bins,
-            alpha=0.7,
-            label="Training Data (AqSolDBc)",
-            color="blue",
-            density=False,
-        )
+            # Plot histograms for both datasets (only nonzero values)
+            ax.hist(
+                train_nonzero,
+                bins=bins,
+                alpha=0.7,
+                label="Training Data (AqSolDBc)",
+                color="blue",
+                density=False,
+            )
 
-        ax.hist(
-            df_test[fg],
-            bins=bins,
-            alpha=0.7,
-            label="Test Data (OChemUnseen)",
-            color="orange",
-            density=False,
-        )
+            ax.hist(
+                test_nonzero,
+                bins=bins,
+                alpha=0.7,
+                label="Test Data (OChemUnseen)",
+                color="orange",
+                density=False,
+            )
+
+            # Set x-axis to show only integer values
+            ax.set_xticks(range(1, 10))
+            ax.set_xlim(0.5, max_val + 0.5)
 
         ax.set_xlabel(fg.replace("fr_", "").replace("_", " ").title())
         ax.grid(True, alpha=0.3)
-        ax.set_xlim(-0.5, max_val + 0.5)
+        ax.set_xlim(0.5, 10.5)
 
         # Only show y-label on leftmost plots
         if i % 4 == 0:
