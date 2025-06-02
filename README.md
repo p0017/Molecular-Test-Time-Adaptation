@@ -15,11 +15,11 @@ Molecular solubility prediction is a critical task in drug discovery, but models
 This project was carried out as part of the seminar **165.164 Selected Topics in Theoretical Chemistry** at TU Wien, under the supervision of [Prof. Esther Heid](https://hesther.github.io/).
 
 ### Key Features
-- 📊 Load and preprocess molecular graphs from CSV files
-- 🧠 Y-shaped GNN architecture with shared encoder and two task-specific heads
-- 🎯 Combined supervised and self-supervised training
-- 🔄 Test-time adaptation for improved generalization on unseen data
-- 📈 Comprehensive performance analysis and visualization
+- Load and preprocess molecular graphs from CSV files
+- Y-shaped GNN architecture with shared encoder and two task-specific heads
+- Combined supervised and self-supervised training
+- Test-time adaptation for improved generalization on unseen data
+- Comprehensive performance analysis and visualization
 
 ### Related work
 - Cui, T., et al. "Online test-time adaptation for better generalization of interatomic potentials to out-of-distribution data." *Nature Communications* 16, 1891 (2025). [DOI](https://doi.org/10.1038/s41467-025-57101-4)
@@ -52,8 +52,7 @@ Open `Molecular-Test-Time-Adaptation.ipynb` and configure the following paramete
 
 | Parameter | Description |
 |-----------|-------------|
-| `train_hyperparam_opt` | Enable hyperparameter optimization during training |
-| `test_hyperparam_opt` | Enable hyperparameter optimization for TTA |
+| `train_hyperparam_opt` | Enable training hyperparameter optimization |
 | `save_model` | Save the best performing model |
 | `load_trained_model` | Load trained model instead of training from scratch |
 | `save_plots` | Save training and analysis plots |
@@ -66,16 +65,17 @@ Then run all cells in the notebook.
 
 ```
 Molecular-Test-Time-Adaptation/
-├── Molecular-Test-Time-Adaptation.ipynb   # 📓 Main notebook
-├── environment.yml                        # 📦 Conda environment specification
-├── figures/                               # 📈 Generated plots and figures
-├── utils/                                 # 🛠️ Utility modules
-│   ├── data_utils.py                      # 📊 Data loading and preprocessing
-│   ├── model_utils.py                     # 🏗️ GNN model architecture
-│   └── train_test_utils.py                # 🎯 Training and TTA functions
-├── models/                                # 💾 Saved model checkpoints
-├── report/                                # 📝 Project report
-└── data/                                  # 📁 Dataset files
+├── Molecular-Test-Time-Adaptation.ipynb   # Main notebook
+├── environment.yml                        # Conda environment specification
+├── figures/                               # Generated plots and figures
+├── utils/                                 # Utility modules
+│   ├── data_utils.py                      # Data loading and preprocessing
+│   ├── model_utils.py                     # GNN model architecture
+│   ├── plot_utils.py                      # Plotting functions
+│   └── train_test_utils.py                # Training and TTA functions
+├── models/                                # Saved model checkpoints
+├── report/                                # Project report
+└── data/                                  # Dataset files
 ```
 
 ---

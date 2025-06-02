@@ -5,6 +5,16 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 from rdkit import Chem
+from rdkit.Chem.Fragments import (
+    fr_Al_OH,
+    fr_Ar_OH,
+    fr_COO,
+    fr_NH2,
+    fr_amide,
+    fr_ester,
+    fr_ether,
+    fr_halogen,
+)
 import torch
 import torch_geometric as tg
 from torch_geometric.data import Dataset
@@ -183,7 +193,7 @@ class ChemDataset(Dataset):
         # Precomputing the dataset such that the get method is faster, and the GPU doesn't have to wait for the CPU
         if precompute:
             print(f"Precomputing data...")
-            with ThreadPoolExecutor(max_workers=4) as executor:
+            with ThreadPoolExecutor(max_workers=8) as executor:
                 futures = [
                     executor.submit(self.process_key, idx)
                     for idx in range(len(self.smiles))
@@ -295,7 +305,7 @@ def construct_loader(
     smiles_column: str,
     target_column: str,
     shuffle: bool = True,
-    batch_size: int = 16,
+    batch_size: int = 16
 ):
     """Constructs a PyTorch Geometric DataLoader from a DataFrame containing SMILES and target data.
     Args:
@@ -319,3 +329,56 @@ def construct_loader(
         dataset=dataset, batch_size=batch_size, shuffle=shuffle, pin_memory=True
     )
     return loader
+
+
+@beartype
+def get_mol_infos(df: pd.DataFrame, smiles_col: str) -> pd.DataFrame:
+    """Add molecular information to a DataFrame including atom counts and functional group descriptors.
+    Args:
+        df: DataFrame containing molecular data
+        smiles_col: Name of the column containing SMILES strings
+
+    Returns:
+        DataFrame with additional molecular descriptor columns
+    """
+    df_updated = deepcopy(df)
+    mols = [Chem.MolFromSmiles(s) for s in df[smiles_col]]
+    df_updated["num_atoms"] = [mol.GetNumAtoms() for mol in mols]
+
+    def get_descriptors(mol) -> dict:
+        """Compute specific functional group descriptors for a given molecule.
+        Args:
+            mol: RDKit molecule object or None
+
+        Returns:
+            dict: Dictionary with functional group counts
+        """
+        if mol is None:
+            return {
+                "fr_Al_OH": 0,
+                "fr_Ar_OH": 0,
+                "fr_COO": 0,
+                "fr_NH2": 0,
+                "fr_amide": 0,
+                "fr_ester": 0,
+                "fr_ether": 0,
+                "fr_halogen": 0,
+            }
+        else:
+            return {
+                "fr_Al_OH": fr_Al_OH(mol),
+                "fr_Ar_OH": fr_Ar_OH(mol),
+                "fr_COO": fr_COO(mol),
+                "fr_NH2": fr_NH2(mol),
+                "fr_amide": fr_amide(mol),
+                "fr_ester": fr_ester(mol),
+                "fr_ether": fr_ether(mol),
+                "fr_halogen": fr_halogen(mol),
+            }
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        functional_groups = list(executor.map(get_descriptors, mols))
+
+    fg_df = pd.DataFrame(functional_groups)
+    df_updated = pd.concat([df_updated, fg_df], axis=1)
+    return df_updated
