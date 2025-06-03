@@ -912,3 +912,99 @@ def centroid_embeddings(
         plt.savefig("figures/sets_TTA.jpg", dpi=300, bbox_inches="tight")
         plt.savefig("figures/sets_TTA.pdf", bbox_inches="tight")
     plt.show()
+
+
+@beartype
+def loss_plot(
+    combined_train_loss_list: list,
+    denoise_train_loss_list: list,
+    pred_train_loss_list: list,
+    combined_val_loss_list: list,
+    denoise_val_loss_list: list,
+    pred_val_loss_list: list,
+    save_plots: bool = False,
+):
+    """Plotting normalized losses for training and validation sets.
+    Args:
+        combined_train_loss_list (list): List of combined training losses.
+        denoise_train_loss_list (list): List of denoise training losses.
+        pred_train_loss_list (list): List of prediction training losses.
+        combined_val_loss_list (list): List of combined validation losses.
+        denoise_val_loss_list (list): List of denoise validation losses.
+        pred_val_loss_list (list): List of prediction validation losses.
+        save_plots (bool): Whether to save the plots as images. Defaults to False.
+    """
+
+    @beartype
+    def normalize_losses(loss_list: list) -> list:
+        """Normalize a list of losses to the range [0, 1].
+        Args:
+            loss_list (list): List of losses to normalize.
+        Returns:
+            list: Normalized list of losses.
+        """
+        min_val, max_val = min(loss_list), max(loss_list)
+        return [(loss - min_val) / (max_val - min_val) for loss in loss_list]
+
+    combined_train_loss_list_norm = normalize_losses(combined_train_loss_list)
+    denoise_train_loss_list_norm = normalize_losses(denoise_train_loss_list)
+    pred_train_loss_list_norm = normalize_losses(pred_train_loss_list)
+    combined_val_loss_list_norm = normalize_losses(combined_val_loss_list)
+    denoise_val_loss_list_norm = normalize_losses(denoise_val_loss_list)
+    pred_val_loss_list_norm = normalize_losses(pred_val_loss_list)
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 4))
+
+    epochs = len(combined_train_loss_list)
+
+    # Plot normalized losses
+    ax.plot(
+        list(range(epochs)),
+        combined_train_loss_list_norm,
+        label="Combined Train Loss",
+        color="blue",
+    )
+    ax.plot(
+        list(range(epochs)),
+        denoise_train_loss_list_norm,
+        label="Denoise Train Loss",
+        color="orange",
+    )
+    ax.plot(
+        list(range(epochs)),
+        pred_train_loss_list_norm,
+        label="Pred Train Loss",
+        color="green",
+    )
+    ax.plot(
+        list(range(epochs)),
+        combined_val_loss_list_norm,
+        label="Combined Val Loss",
+        color="blue",
+        linestyle="dashed",
+    )
+    ax.plot(
+        list(range(epochs)),
+        denoise_val_loss_list_norm,
+        label="Denoise Val Loss",
+        color="orange",
+        linestyle="dashed",
+    )
+    ax.plot(
+        list(range(epochs)),
+        pred_val_loss_list_norm,
+        label="Pred Val Loss",
+        color="green",
+        linestyle="dashed",
+    )
+    
+    ax.legend(ncol=2)
+    ax.set_xlabel("Epochs")
+    ax.set_xticks(list(range(0, epochs, 5)))
+    ax.set_ylabel("Normalized Loss")
+
+    plt.tight_layout()
+    if save_plots:
+        plt.savefig("figures/loss_plot.jpg", dpi=300, bbox_inches="tight")
+        plt.savefig("figures/loss_plot.pdf", bbox_inches="tight")
+    plt.show()

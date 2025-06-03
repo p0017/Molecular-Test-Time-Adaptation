@@ -305,7 +305,7 @@ def construct_loader(
     smiles_column: str,
     target_column: str,
     shuffle: bool = True,
-    batch_size: int = 16
+    batch_size: int = 512,
 ):
     """Constructs a PyTorch Geometric DataLoader from a DataFrame containing SMILES and target data.
     Args:
@@ -326,7 +326,10 @@ def construct_loader(
 
     dataset = ChemDataset(smiles, labels)
     loader = DataLoader(
-        dataset=dataset, batch_size=batch_size, shuffle=shuffle, pin_memory=True
+        dataset=dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        pin_memory=True
     )
     return loader
 
