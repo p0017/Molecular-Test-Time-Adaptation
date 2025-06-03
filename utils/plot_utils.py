@@ -53,11 +53,12 @@ def solubility_histogram(
 
 @beartype
 def solubility_histogram_shift(
-    df_train: pd.DataFrame, df_test_1: pd.DataFrame, df_test_2: pd.DataFrame, save_plots: bool = False
+    df_train: pd.DataFrame, df_val:pd.DataFrame, df_test_1: pd.DataFrame, df_test_2: pd.DataFrame, save_plots: bool = False
 ):
     """Plotting a histogram of solubility values for training and test datasets.
     Args:
         df_train (pd.DataFrame): Training dataset containing 'ExperimentalLogS' column.
+        df_val (pd.DataFrame): Validation dataset containing 'ExperimentalLogS' column.
         df_test_1 (pd.DataFrame): Test dataset containing 'LogS' column.
         df_test_2 (pd.DataFrame): Another test dataset containing 'LogS' column.
         save_plots (bool): Whether to save the plots as images. Defaults to False.
@@ -66,6 +67,9 @@ def solubility_histogram_shift(
     assert (
         "ExperimentalLogS" in df_train.columns
     ), "Training Data must contain 'ExperimentalLogS' column"
+    assert (
+        "ExperimentalLogS" in df_val.columns
+    ), "Validation Data must contain 'ExperimentalLogS' column"
     assert "LogS" in df_test_1.columns, "Test Data must contain 'LogS' column"
     assert "LogS" in df_test_2.columns, "Test Data must contain 'LogS' column"
 
@@ -73,17 +77,26 @@ def solubility_histogram_shift(
     ax.hist(
         df_train["ExperimentalLogS"],
         bins=100,
-        alpha=0.7,
+        alpha=0.5,
         label="Training Data",
         color="blue",
         density=False,
     )
 
     ax.hist(
+        df_val["ExperimentalLogS"],
+        bins=100,
+        alpha=0.5,
+        label="Validation Data",
+        color="orange",
+        density=False,
+    )
+
+    ax.hist(
         df_test_1["LogS"],
         bins=100,
-        alpha=0.7,
-        label="Ether Test Data",
+        alpha=0.5,
+        label="20 Atom Test Data",
         color="green",
         density=False,
     )
@@ -91,7 +104,7 @@ def solubility_histogram_shift(
     ax.hist(
         df_test_2["LogS"],
         bins=100,
-        alpha=0.7,
+        alpha=0.5,
         label="NH2 Test Data",
         color="red",
         density=False,
@@ -251,6 +264,7 @@ def functional_group_histogram(
 @beartype
 def get_dynamic_limits(
     train_embeddings,
+    val_embeddings,
     test_embeddings_1,
     test_embeddings_2,
     lower_percentile: int = 5,
@@ -259,6 +273,7 @@ def get_dynamic_limits(
     """Calculate dynamic limits for plotting embeddings based on percentiles.
     Args:
         train_embeddings (np.ndarray): Embeddings for the training set.
+        val_embeddings (np.ndarray): Embeddings for the validation set.
         test_embeddings_1 (np.ndarray): Embeddings for a test set.
         test_embeddings_2 (np.ndarray): Embeddings for another test set.
         lower_percentile (int): Lower percentile for dynamic limits. Defaults to 5.
@@ -279,6 +294,12 @@ def get_dynamic_limits(
     y_min_train, y_max_train = np.percentile(
         train_embeddings[:, 1], [lower_percentile, upper_percentile]
     )
+    x_min_val, x_max_val = np.percentile(
+        val_embeddings[:, 0], [lower_percentile, upper_percentile]
+    )
+    y_min_val, y_max_val = np.percentile(
+        val_embeddings[:, 1], [lower_percentile, upper_percentile]
+    )
     x_min_test_1, x_max_test_1 = np.percentile(
         test_embeddings_1[:, 0], [lower_percentile, upper_percentile]
     )
@@ -292,10 +313,10 @@ def get_dynamic_limits(
         test_embeddings_2[:, 1], [lower_percentile, upper_percentile]
     )
 
-    x_max = max(x_max_train, x_max_test_1, x_max_test_2)
-    x_min = min(x_min_train, x_min_test_1, x_min_test_2)
-    y_max = max(y_max_train, y_max_test_1, y_max_test_2)
-    y_min = min(y_min_train, y_min_test_1, y_min_test_2)
+    x_max = max(x_max_train, x_max_test_1, x_max_test_2, x_max_val)
+    x_min = min(x_min_train, x_min_test_1, x_min_test_2, x_min_val)
+    y_max = max(y_max_train, y_max_test_1, y_max_test_2, y_max_val)
+    y_min = min(y_min_train, y_min_test_1, y_min_test_2, y_min_val)
 
     return x_min, x_max, y_min, y_max
 
@@ -431,13 +452,13 @@ def solubility_embeddings(
 
     # Dynamically adjust the limits for both plots
     x_min_tsne, x_max_tsne, y_min_tsne, y_max_tsne = get_dynamic_limits(
-        train_embeddings_tsne, test_embeddings_tsne_1, test_embeddings_tsne_2
+        train_embeddings_tsne, val_embeddings_tsne, test_embeddings_tsne_1, test_embeddings_tsne_2
     )
     ax1.set_xlim(x_min_tsne, x_max_tsne)
     ax1.set_ylim(y_min_tsne, y_max_tsne)
 
     x_min_umap, x_max_umap, y_min_umap, y_max_umap = get_dynamic_limits(
-        train_embeddings_umap, test_embeddings_umap_1, test_embeddings_umap_2
+        train_embeddings_umap, val_embeddings_umap, test_embeddings_umap_1, test_embeddings_umap_2
     )
     ax2.set_xlim(x_min_umap, x_max_umap)
     ax2.set_ylim(y_min_umap, y_max_umap)
@@ -498,7 +519,7 @@ def sets_embeddings(
     ax1.scatter(
         test_embeddings_tsne_1[:, 0],
         test_embeddings_tsne_1[:, 1],
-        label="Ether Test Set",
+        label="20 Atom Test Set",
         s=2,
         color="green",
     )
@@ -512,7 +533,7 @@ def sets_embeddings(
 
     # Dynamically adjust the limits for both plots
     x_min_tsne, x_max_tsne, y_min_tsne, y_max_tsne = get_dynamic_limits(
-        train_embeddings_tsne, test_embeddings_tsne_1, test_embeddings_tsne_2
+        train_embeddings_tsne, val_embeddings_tsne, test_embeddings_tsne_1, test_embeddings_tsne_2
     )
 
     ax1.set_title("t-SNE Projection")
@@ -540,7 +561,7 @@ def sets_embeddings(
     ax2.scatter(
         test_embeddings_umap_1[:, 0],
         test_embeddings_umap_1[:, 1],
-        label="Ether Test Set",
+        label="20 Atom Test Set",
         s=2,
         color="green",
     )
@@ -554,7 +575,7 @@ def sets_embeddings(
 
     # Dynamically adjust the limits for both plots
     x_min_umap, x_max_umap, y_min_umap, y_max_umap = get_dynamic_limits(
-        train_embeddings_umap, test_embeddings_umap_1, test_embeddings_umap_2
+        train_embeddings_umap, val_embeddings_umap, test_embeddings_umap_1, test_embeddings_umap_2
     )
 
     ax2.set_title("UMAP Projection")
@@ -574,12 +595,14 @@ def sets_embeddings(
 def centroid_embeddings(
     train_embeddings_tsne: np.ndarray,
     val_embeddings_tsne: np.ndarray,
+    val_embeddings_with_TTA_tsne: np.ndarray,
     test_embeddings_tsne_1: np.ndarray,
     test_embeddings_tsne_2: np.ndarray,
     test_embeddings_with_TTA_tsne_1: np.ndarray,
     test_embeddings_with_TTA_tsne_2: np.ndarray,
     train_embeddings_umap: np.ndarray,
     val_embeddings_umap: np.ndarray,
+    val_embeddings_with_TTA_umap: np.ndarray,
     test_embeddings_umap_1: np.ndarray,
     test_embeddings_umap_2: np.ndarray,
     test_embeddings_with_TTA_umap_1: np.ndarray,
@@ -590,12 +613,14 @@ def centroid_embeddings(
     Args:
         train_embeddings_tsne (np.ndarray): t-SNE embeddings for the training set.
         val_embeddings_tsne (np.ndarray): t-SNE embeddings for the validation set.
+        val_embeddings_with_TTA_tsne (np.ndarray): t-SNE embeddings for the validation set with TTA.
         test_embeddings_tsne_1 (np.ndarray): t-SNE embeddings for a test set.
         test_embeddings_tsne_2 (np.ndarray): t-SNE embeddings for another test set.
         test_embeddings_with_TTA_tsne_1 (np.ndarray): t-SNE embeddings for a test set with TTA.
         test_embeddings_with_TTA_tsne_2 (np.ndarray): t-SNE embeddings for another test set with TTA.
         train_embeddings_umap (np.ndarray): UMAP embeddings for the training set.
         val_embeddings_umap (np.ndarray): UMAP embeddings for the validation set.
+        val_embeddings_with_TTA_umap (np.ndarray): UMAP embeddings for the validation set with TTA.
         test_embeddings_umap_1 (np.ndarray): UMAP embeddings for a test set.
         test_embeddings_umap_2 (np.ndarray): UMAP embeddings for another test set.
         test_embeddings_with_TTA_umap_1 (np.ndarray): UMAP embeddings for a test set with TTA.
@@ -603,17 +628,18 @@ def centroid_embeddings(
         save_plots (bool): Whether to save the plots as images. Defaults to False.
     """
 
-    # Calculate centroids with median instead of mean since we have outliers
-    train_centroid_umap = np.median(train_embeddings_umap, axis=0)
-    val_centroid_umap = np.median(val_embeddings_umap, axis=0)
-    test_centroid_umap_1 = np.median(test_embeddings_umap_1, axis=0)
-    test_tta_centroid_umap_1 = np.median(test_embeddings_with_TTA_umap_1, axis=0)
-    test_centroid_umap_2 = np.median(test_embeddings_umap_2, axis=0)
-    test_tta_centroid_umap_2 = np.median(test_embeddings_with_TTA_umap_2, axis=0)
-
     # Calculate centroids
+    train_centroid_umap = np.mean(train_embeddings_umap, axis=0)
+    val_centroid_umap = np.mean(val_embeddings_umap, axis=0)
+    val_tta_centroid_umap = np.mean(val_embeddings_with_TTA_umap, axis=0)
+    test_centroid_umap_1 = np.mean(test_embeddings_umap_1, axis=0)
+    test_tta_centroid_umap_1 = np.mean(test_embeddings_with_TTA_umap_1, axis=0)
+    test_centroid_umap_2 = np.mean(test_embeddings_umap_2, axis=0)
+    test_tta_centroid_umap_2 = np.mean(test_embeddings_with_TTA_umap_2, axis=0)
+
     train_centroid_tsne = np.mean(train_embeddings_tsne, axis=0)
     val_centroid_tsne = np.mean(val_embeddings_tsne, axis=0)
+    val_tta_centroid_tsne = np.mean(val_embeddings_with_TTA_tsne, axis=0)
     test_centroid_tsne_1 = np.mean(test_embeddings_tsne_1, axis=0)
     test_tta_centroid_tsne_1 = np.mean(test_embeddings_with_TTA_tsne_1, axis=0)
     test_centroid_tsne_2 = np.mean(test_embeddings_tsne_2, axis=0)
@@ -626,14 +652,14 @@ def centroid_embeddings(
     ax1.scatter(
         test_embeddings_tsne_1[:, 0],
         test_embeddings_tsne_1[:, 1],
-        label="Ether Test Set",
+        label="20 Atom Test Set",
         s=2,
         color="lightgreen",
     )
     ax1.scatter(
         test_embeddings_with_TTA_tsne_1[:, 0],
         test_embeddings_with_TTA_tsne_1[:, 1],
-        label="Ether Test Set with TTA",
+        label="20 Atom Test Set with TTA",
         s=2,
         color="darkgreen",
     )
@@ -652,6 +678,20 @@ def centroid_embeddings(
         color="darkred",
     )
     ax1.scatter(
+        val_embeddings_tsne[:, 0],
+        val_embeddings_tsne[:, 1],
+        label="Validation Set",
+        s=2,
+        color="peachpuff",
+    )
+    ax1.scatter(
+        val_embeddings_with_TTA_tsne[:, 0],
+        val_embeddings_with_TTA_tsne[:, 1],
+        label="Validation Set with TTA",
+        s=2,
+        color="darkorange",
+    )
+    ax1.scatter(
         test_centroid_tsne_1[0],
         test_centroid_tsne_1[1],
         s=200,
@@ -659,7 +699,7 @@ def centroid_embeddings(
         marker="P",
         edgecolors="black",
         linewidths=1,
-        label="Ether Test Centroid",
+        label="20 Atom Test Centroid",
     )
     ax1.scatter(
         test_tta_centroid_tsne_1[0],
@@ -669,7 +709,7 @@ def centroid_embeddings(
         marker="X",
         edgecolors="black",
         linewidths=1,
-        label="Ether Test Centroid with TTA",
+        label="20 Atom Test Centroid with TTA",
     )
     ax1.scatter(
         test_centroid_tsne_2[0],
@@ -705,11 +745,21 @@ def centroid_embeddings(
         val_centroid_tsne[0],
         val_centroid_tsne[1],
         s=200,
-        c="orange",
-        marker="X",
+        c="peachpuff",
+        marker="P",
         edgecolors="black",
         linewidths=1,
         label="Val Centroid",
+    )
+    ax1.scatter(
+        val_tta_centroid_tsne[0],
+        val_tta_centroid_tsne[1],
+        s=200,
+        c="darkorange",
+        marker="X",
+        edgecolors="black",
+        linewidths=1,
+        label="Val Centroid with TTA",
     )
 
     ax1.set_title("t-SNE Projection")
@@ -717,7 +767,7 @@ def centroid_embeddings(
     ax1.set_ylabel("t-SNE Component 2")
 
     x_min_tsne, x_max_tsne, y_min_tsne, y_max_tsne = get_dynamic_limits(
-        train_embeddings_tsne, test_embeddings_tsne_1, test_embeddings_tsne_2, 20, 80
+        train_embeddings_tsne, val_embeddings_tsne, test_embeddings_tsne_1, test_embeddings_tsne_2, 20, 80
     )
 
     ax1.set_xlim(x_min_tsne, x_max_tsne)
@@ -728,14 +778,14 @@ def centroid_embeddings(
     ax2.scatter(
         test_embeddings_umap_1[:, 0],
         test_embeddings_umap_1[:, 1],
-        label="Ether Test Set",
+        label="20 Atom Test Set",
         s=2,
         color="lightgreen",
     )
     ax2.scatter(
         test_embeddings_with_TTA_umap_1[:, 0],
         test_embeddings_with_TTA_umap_1[:, 1],
-        label="Ether Test Set with TTA",
+        label="20 Atom Test Set with TTA",
         s=2,
         color="darkgreen",
     )
@@ -753,6 +803,20 @@ def centroid_embeddings(
         s=2,
         color="darkred",
     )
+    ax2.scatter(
+        val_embeddings_umap[:, 0],
+        val_embeddings_umap[:, 1],
+        label="Validation Set",
+        s=2,
+        color="peachpuff",
+    )
+    ax2.scatter(
+        val_embeddings_with_TTA_umap[:, 0],
+        val_embeddings_with_TTA_umap[:, 1],
+        label="Validation Set with TTA",
+        s=2,
+        color="darkorange",
+    )
 
     ax2.scatter(
         test_centroid_umap_1[0],
@@ -762,7 +826,7 @@ def centroid_embeddings(
         marker="P",
         edgecolors="black",
         linewidths=1,
-        label="Ether Test Centroid",
+        label="20 Atom Test Centroid",
         alpha=0.9,
     )
     ax2.scatter(
@@ -773,7 +837,7 @@ def centroid_embeddings(
         marker="X",
         edgecolors="black",
         linewidths=1,
-        label="Ether Test Centroid with TTA",
+        label="20 Atom Test Centroid with TTA",
         alpha=0.9,
     )
     ax2.scatter(
@@ -813,11 +877,22 @@ def centroid_embeddings(
         val_centroid_umap[0],
         val_centroid_umap[1],
         s=200,
-        c="orange",
-        marker="X",
+        c="peachpuff",
+        marker="P",
         edgecolors="black",
         linewidths=1,
         label="Val Centroid",
+        alpha=0.9,
+    )
+    ax2.scatter(
+        val_tta_centroid_umap[0],
+        val_tta_centroid_umap[1],
+        s=200,
+        c="darkorange",
+        marker="X",
+        edgecolors="black",
+        linewidths=1,
+        label="Val Centroid with TTA",
         alpha=0.9,
     )
 
@@ -826,7 +901,7 @@ def centroid_embeddings(
     ax2.set_ylabel("UMAP Component 2")
 
     x_min_umap, x_max_umap, y_min_umap, y_max_umap = get_dynamic_limits(
-        train_embeddings_umap, test_embeddings_umap_1, test_embeddings_umap_2, 20, 80
+        train_embeddings_umap, val_embeddings_umap, test_embeddings_umap_1, test_embeddings_umap_2, 20, 80
     )
 
     ax2.set_xlim(x_min_umap, x_max_umap)
