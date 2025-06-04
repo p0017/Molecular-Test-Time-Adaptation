@@ -168,19 +168,20 @@ class ChemDataset(Dataset):
         self,
         smiles: np.ndarray,
         labels,
-        flip_prob: float = 0.25,
-        noise_std: float = 0.25,
-        precompute: bool = True,
+        flip_prob: float = 0.75,
+        noise_std: float = 1.5,
+        node_mask_prob: float = 0.75,
+        edge_drop_prob: float = 0.75,
+        precompute: bool = False,
     ):
         """Initialize ChemDataset with SMILES strings and labels.
         Args:
             smiles (np.ndarray): SMILES molecular representations
             labels: Target labels for the molecules
             flip_prob (float, optional): Probability of flipping bits for denoising task.
-                Defaults to 0.25. Reference: denoising autoencoders use ~10%, BERT uses 15%.
-            noise_std (float, optional): Standard deviation for noise addition. Defaults to 0.25.
+                                        Reference: denoising autoencoders use ~10%, BERT uses 15%.
+            noise_std (float, optional): Standard deviation for noise addition. Defaults to 0.4.
             precompute (bool, optional): Whether to precompute dataset for faster GPU training.
-                Defaults to True.
         """
         super(ChemDataset, self).__init__()
         self.smiles = smiles
@@ -188,6 +189,8 @@ class ChemDataset(Dataset):
         self.cache = {}
         self.flip_prob = flip_prob
         self.noise_std = noise_std
+        self.node_mask_prob = node_mask_prob
+        self.edge_drop_prob  = edge_drop_prob
         self.precompute = precompute
 
         # Precomputing the dataset such that the get method is faster, and the GPU doesn't have to wait for the CPU
@@ -215,13 +218,17 @@ class ChemDataset(Dataset):
             Processed molecule data object
         """
         smiles = self.smiles[key]
-        if smiles in self.cache.keys():
-            molecule = self.cache[smiles]
+        if self.precompute:
+            # only cache the fully processed Data when precompute=True
+            if smiles not in self.cache:
+                molgraph = MolGraph(smiles)
+                data = self.molgraph2data(molgraph, key)
+                self.cache[smiles] = data
+            return self.cache[smiles]
         else:
+            # rebuild every time for fresh noise
             molgraph = MolGraph(smiles)
-            molecule = self.molgraph2data(molgraph, key)
-            self.cache[smiles] = molecule
-        return molecule
+            return self.molgraph2data(molgraph, key)
 
     def molgraph2data(self, molgraph, key):
         """Convert a molecular graph to PyTorch Geometric Data object with optional noise augmentation.
@@ -234,7 +241,6 @@ class ChemDataset(Dataset):
                           of features if augmentation is enabled
         """
         data = tg.data.Data()
-
         data.x = torch.tensor(molgraph.atom_features, dtype=torch.float)
         data.edge_index = (
             torch.tensor(molgraph.edge_index, dtype=torch.long).t().contiguous()
@@ -243,45 +249,64 @@ class ChemDataset(Dataset):
         data.y = torch.tensor([self.labels[key]], dtype=torch.float)
         data.smiles = self.smiles[key]
 
-        if self.flip_prob > 0 or self.noise_std > 0:
-            # Create a deep copy to avoid modifying original data
-            x_noisy = deepcopy(data.x)
-            edge_attr_noisy = deepcopy(data.edge_attr)
+        x_noisy = data.x.clone()
+        edge_attr_noisy = data.edge_attr.clone()
+        edge_index_noisy = data.edge_index.clone()
 
-            # Apply bit flipping to binary features if probability > 0
-            if self.flip_prob > 0:
-                binary_features = x_noisy[
-                    :, :-1
-                ]  # All but last column, which contains mass
-                flip_mask = torch.rand_like(binary_features) < self.flip_prob
-                binary_features[flip_mask] = (
-                    1.0 - binary_features[flip_mask]
-                )  # Flip 0->1 and 1->0
-                x_noisy[:, :-1] = deepcopy(binary_features)
+        # node‐level masking (zero out entire feature vectors)
+        if self.node_mask_prob > 0:
+            mask = (
+                torch.rand(x_noisy.size(0), device=x_noisy.device) < self.node_mask_prob
+            )
+            x_noisy[mask] = 0.0
 
-                binary_features = (
-                    edge_attr_noisy  # Edge features only contain one-hot encodings
-                )
-                flip_mask = torch.rand_like(binary_features) < self.flip_prob
-                binary_features[flip_mask] = (
-                    1.0 - binary_features[flip_mask]
-                )  # Flip 0->1 and 1->0
-                edge_attr_noisy = deepcopy(binary_features)
+        # random edge‐drop on the noisy graph
+        if self.edge_drop_prob > 0:
+            num_edges = edge_attr_noisy.size(0)
+            if num_edges % 2 != 0:
+                raise ValueError(f"Expected even number of edges, got {num_edges}")
 
-            # Apply Gaussian noise to continuous feature if std > 0
-            if self.noise_std > 0:
-                mass_feature = x_noisy[
-                    :, -1:
-                ]  # Just the last column, which contains mass
-                # Adding noise which is a percentage of the mass feature
-                mass_feature += (
-                    mass_feature * torch.randn_like(mass_feature) * self.noise_std
-                )
-                x_noisy[:, -1:] = deepcopy(mass_feature)
+            num_bonds = num_edges // 2
+            # sample which bonds to KEEP
+            keep_bond = (
+                torch.rand(num_bonds, device=edge_attr_noisy.device)
+                > self.edge_drop_prob
+            )
+            # never drop all edges
+            if keep_bond.sum() == 0:
+                idx = torch.randint(num_bonds, (1,), device=keep_bond.device)
+                keep_bond[idx] = True
 
-            data.x_noisy = x_noisy
-            data.edge_attr_noisy = edge_attr_noisy
+            # repeat each decision for both directions
+            keep = torch.empty(num_edges, dtype=torch.bool, device=keep_bond.device)
+            keep[0::2] = keep_bond
+            keep[1::2] = keep_bond
 
+            edge_attr_noisy = edge_attr_noisy[keep]
+            edge_index_noisy = edge_index_noisy[:, keep]
+
+        # bit‐flipping on remaining binary features
+        if self.flip_prob > 0:
+            # flip node‐features except last (mass) dim
+            bf = x_noisy[:, :-1]
+            flip_mask = torch.rand_like(bf) < self.flip_prob
+            bf[flip_mask] = 1.0 - bf[flip_mask]
+            x_noisy[:, :-1] = bf
+            # flip edge attributes
+            ef = edge_attr_noisy
+            flip_mask_e = torch.rand_like(ef) < self.flip_prob
+            ef[flip_mask_e] = 1.0 - ef[flip_mask_e]
+            edge_attr_noisy = ef
+
+        # Gaussian noise on continuous mass feature (last dim of x)
+        if self.noise_std > 0:
+            m = x_noisy[:, -1:].clone()
+            m = m + m * torch.randn_like(m) * self.noise_std
+            x_noisy[:, -1:] = m
+
+        data.x_noisy = x_noisy
+        data.edge_index_noisy = edge_index_noisy
+        data.edge_attr_noisy = edge_attr_noisy
         return data
 
     def get(self, key):
@@ -326,10 +351,7 @@ def construct_loader(
 
     dataset = ChemDataset(smiles, labels)
     loader = DataLoader(
-        dataset=dataset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        pin_memory=True
+        dataset=dataset, batch_size=batch_size, shuffle=shuffle, pin_memory=True
     )
     return loader
 

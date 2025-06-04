@@ -732,16 +732,6 @@ def centroid_embeddings(
         label="NH2 Test Centroid with TTA",
     )
     ax1.scatter(
-        train_centroid_tsne[0],
-        train_centroid_tsne[1],
-        s=200,
-        c="blue",
-        marker="P",
-        edgecolors="black",
-        linewidths=1,
-        label="Train Centroid",
-    )
-    ax1.scatter(
         val_centroid_tsne[0],
         val_centroid_tsne[1],
         s=200,
@@ -761,6 +751,16 @@ def centroid_embeddings(
         linewidths=1,
         label="Val Centroid with TTA",
     )
+    ax1.scatter(
+        train_centroid_tsne[0],
+        train_centroid_tsne[1],
+        s=200,
+        c="blue",
+        marker="P",
+        edgecolors="black",
+        linewidths=1,
+        label="Train Centroid",
+    )
 
     ax1.set_title("t-SNE Projection")
     ax1.set_xlabel("t-SNE Component 1")
@@ -772,7 +772,7 @@ def centroid_embeddings(
 
     ax1.set_xlim(x_min_tsne, x_max_tsne)
     ax1.set_ylim(y_min_tsne, y_max_tsne)
-    fig.legend(bbox_to_anchor=(0.95, -0.25), loc="lower right", ncol=3)
+    fig.legend(bbox_to_anchor=(1, -0.3), loc="lower right", ncol=3)
 
     # UMAP plot on the right
     ax2.scatter(
@@ -863,17 +863,6 @@ def centroid_embeddings(
         alpha=0.9,
     )
     ax2.scatter(
-        train_centroid_umap[0],
-        train_centroid_umap[1],
-        s=200,
-        c="blue",
-        marker="P",
-        edgecolors="black",
-        linewidths=1,
-        label="Train Centroid",
-        alpha=0.9,
-    )
-    ax2.scatter(
         val_centroid_umap[0],
         val_centroid_umap[1],
         s=200,
@@ -893,6 +882,17 @@ def centroid_embeddings(
         edgecolors="black",
         linewidths=1,
         label="Val Centroid with TTA",
+        alpha=0.9,
+    )
+    ax2.scatter(
+        train_centroid_umap[0],
+        train_centroid_umap[1],
+        s=200,
+        c="blue",
+        marker="P",
+        edgecolors="black",
+        linewidths=1,
+        label="Train Centroid",
         alpha=0.9,
     )
 

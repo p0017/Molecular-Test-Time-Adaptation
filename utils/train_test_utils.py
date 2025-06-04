@@ -25,17 +25,16 @@ class Standardizer:
 
 @beartype
 def train_epoch(
-    model, loader, optimizer, loss, alpha: float, stdzer: Standardizer = None
+    model, loader, optimizer, loss, stdzer: Standardizer = None
 ) -> tuple:
     """Train the model for one epoch on denoising and prediction tasks simultaneously.
-    Uses a weighted combination of denoising loss (alpha) and prediction loss (1-alpha)
+    Uses a sum of denoising loss and prediction loss
     to train the model on both self-supervised and supervised objectives.
     Args:
         model: The neural network model to train
         loader: DataLoader containing training batches
         optimizer: Optimizer for updating model parameters
         loss: Loss function to compute training losses
-        alpha: Weight for denoising loss (0-1), prediction loss gets (1-alpha)
         stdzer: Standardizer for target values, optional
     Returns:
         tuple: (combined_loss_rmse, denoise_loss_rmse, pred_loss_rmse) averaged over dataset
@@ -58,14 +57,14 @@ def train_epoch(
         node_out, edge_out = model(batch)
         node_loss = loss(node_out, batch.x)
         edge_loss = loss(edge_out, batch.edge_attr)
-        denoise_loss = alpha * (node_loss + edge_loss)
+        denoise_loss = node_loss + edge_loss
 
         # Get losses for the prediction task
         model.set_mode("predict")
         pred_out = model(batch)
-        pred_loss = (1 - alpha) * loss(pred_out, stdzer(batch.y))
+        pred_loss = loss(pred_out, stdzer(batch.y))
 
-        # Combine the weighted losses as a sum and backpropagate them
+        # Combine the losses as a sum and backpropagate them
         combined_loss = denoise_loss + pred_loss
         combined_loss.backward()
         optimizer.step()
@@ -75,6 +74,9 @@ def train_epoch(
 
         # Wang et al. did a weighted sum of self-supervised and supervised losses
         # https://doi.org/10.48550/arXiv.2210.08813
+
+        # Experimented with different weightings for the losses
+        # Made optimization complicated and didn't yield better results
 
         # Also experimented with alternating backpropagation steps for each task
         # Results were worse
@@ -92,7 +94,7 @@ def train_epoch(
 
 @beartype
 def train_epoch_without_SSL(
-    model, loader, optimizer, loss, alpha: float, stdzer: Standardizer
+    model, loader, optimizer, loss, stdzer: Standardizer
 ) -> float:
     """Train the model for one epoch on the prediction task only without SSL.
     Unfreezes the encoder and prediction head while freezing the decoder.
@@ -102,7 +104,6 @@ def train_epoch_without_SSL(
         loader: DataLoader containing training batches
         optimizer: Optimizer for updating model parameters
         loss: Loss function for prediction task
-        alpha: Weight parameter (kept for reference, doesn't affect training)
         stdzer: Standardizer for target values
     Returns:
         float: Root mean squared prediction loss over the epoch
@@ -131,8 +132,7 @@ def train_epoch_without_SSL(
         # Get losses for the prediction task
         model.set_mode("predict")
         pred_out = model(batch)
-        # We keep the alpha weight for reference, but it doesn't matter here
-        pred_loss = (1 - alpha) * loss(pred_out, stdzer(batch.y))
+        pred_loss = loss(pred_out, stdzer(batch.y))
 
         # Only backpropagate the prediction loss
         pred_loss.backward()
@@ -193,7 +193,7 @@ def pred(model, loader, mode: str, stdzer: Standardizer) -> list:
 
 
 @beartype
-def pred_with_TTA(model, loader, lr: float, stdzer: Standardizer) -> list:
+def pred_with_TTA(model, loader, lr: float, n_steps: int, stdzer: Standardizer) -> list:
     """Perform predictions with test-time adaptation (TTA) using a batch size of 1.
     The function unfreezes the encoder and decoder while keeping the prediction head frozen,
     then performs a single training step on each test sample using denoising loss before making predictions.
@@ -201,6 +201,7 @@ def pred_with_TTA(model, loader, lr: float, stdzer: Standardizer) -> list:
         model: The neural network model to adapt and use for predictions
         loader: DataLoader containing test samples (should have batch size of 1)
         lr (float): Learning rate for the adaptation optimizer
+        n_steps (int): Number of adaptation steps to perform on each sample
         stdzer (Standardizer): Standardizer object for reversing normalization of predictions
     Returns:
         list: List of predictions after test-time adaptation
@@ -227,18 +228,21 @@ def pred_with_TTA(model, loader, lr: float, stdzer: Standardizer) -> list:
 
     for batch in loader:
         batch = batch.to(device)
-        optimizer.zero_grad()
-
+        
         model.set_mode("denoise")
         model.train()
-
-        node_out, edge_out = model(batch)
-        node_loss = loss(node_out, batch.x)
-        edge_loss = loss(edge_out, batch.edge_attr)
-        # Losses get the same weighting as in the training step
-        denoise_loss = node_loss + edge_loss
-        denoise_loss.backward()
-        optimizer.step()
+        
+        # Perform multiple TTA steps
+        for _ in range(n_steps):
+            optimizer.zero_grad()
+            
+            node_out, edge_out = model(batch)
+            node_loss = loss(node_out, batch.x)
+            edge_loss = loss(edge_out, batch.edge_attr)
+            # Losses get the same weighting as in the training step
+            denoise_loss = node_loss + edge_loss
+            denoise_loss.backward()
+            optimizer.step()
 
         model.set_mode("predict")
         model.eval()
@@ -254,7 +258,7 @@ def pred_with_TTA(model, loader, lr: float, stdzer: Standardizer) -> list:
 
 
 @beartype
-def embeddings_with_TTA(model, loader, lr: float) -> list:
+def embeddings_with_TTA(model, loader, lr: float, n_steps: int) -> list:
     """Get embeddings with test-time adaptation (TTA) using a batch size of 1.
     The function unfreezes the encoder and decoder while keeping the prediction head frozen,
     then performs a single training step on each test sample using denoising loss before getting embeddings.
@@ -262,6 +266,7 @@ def embeddings_with_TTA(model, loader, lr: float) -> list:
         model: The neural network model to adapt
         loader: DataLoader containing batches for adaptation
         lr (float): Learning rate for the adaptation optimizer
+        n_steps (int): Number of adaptation steps to perform on each sample
     Returns:
         list: List of embeddings after test-time adaptation
     """
@@ -287,18 +292,20 @@ def embeddings_with_TTA(model, loader, lr: float) -> list:
 
     for batch in loader:
         batch = batch.to(device)
-        optimizer.zero_grad()
-
+        
         model.set_mode("denoise")
         model.train()
-
-        node_out, edge_out = model(batch)
-        node_loss = loss(node_out, batch.x)
-        edge_loss = loss(edge_out, batch.edge_attr)
-        # Losses get the same weighting as in the training step
-        denoise_loss = node_loss + edge_loss
-        denoise_loss.backward()
-        optimizer.step()
+        
+        # Perform multiple TTA steps
+        for _ in range(n_steps):
+            optimizer.zero_grad()
+            
+            node_out, edge_out = model(batch)
+            node_loss = loss(node_out, batch.x)
+            edge_loss = loss(edge_out, batch.edge_attr)
+            denoise_loss = node_loss + edge_loss
+            denoise_loss.backward()
+            optimizer.step()
 
         model.set_mode("predict")
         model.eval()

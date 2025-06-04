@@ -50,6 +50,8 @@ class GNNEncoder(nn.Module):
         mode (str): Operating mode, either 'denoise' or 'predict'
         depth (int): Number of DMPNN convolution layers
         dropout (float): Dropout probability for regularization
+        use_layer_norm (bool): Whether to use layer normalization in the model
+        use_residual (bool): Whether to use residual connections in the model
     Returns:
         torch.Tensor: Graph-level embedding after global pooling
     Note:
@@ -66,16 +68,31 @@ class GNNEncoder(nn.Module):
         mode: str,
         depth: int,
         dropout: float,
+        use_layer_norm: bool = True,
+        use_residual: bool = True,
     ):
         super().__init__()
         self.depth = depth
         self.hidden_size = hidden_size
         self.dropout = dropout
         self.mode = mode
+        self.use_layer_norm = use_layer_norm
+        self.use_residual = use_residual
 
         # Encoder layers
         self.edge_init = nn.Linear(num_node_features + num_edge_features, hidden_size)
         self.convs = nn.ModuleList([DMPNNConv(hidden_size) for _ in range(depth)])
+
+        # Add layer normalization for each conv layer
+        if use_layer_norm:
+            self.layer_norms = nn.ModuleList(
+                [nn.LayerNorm(hidden_size) for _ in range(depth)]
+            )
+            # Layer norm for edge initialization
+            self.edge_init_norm = nn.LayerNorm(hidden_size)
+            # Layer norm for edge-to-node conversion
+            self.edge_to_node_norm = nn.LayerNorm(hidden_size)
+
         self.edge_to_node = nn.Linear(num_node_features + hidden_size, hidden_size)
         self.pool = global_add_pool  # Not learnable
 
@@ -96,22 +113,46 @@ class GNNEncoder(nn.Module):
 
         if self.mode == "denoise":
             x = data.x_noisy
+            edge_index = data.edge_index_noisy
             edge_attr = data.edge_attr_noisy
         elif self.mode == "predict":
             x = data.x
+            edge_index = data.edge_index
+            edge_attr = data.edge_attr
         else:
             raise ValueError("Invalid mode. Choose 'denoise' or 'predict'.")
 
         # Edge initialization
         row, _ = edge_index
-        h_0 = F.relu(self.edge_init(torch.cat([x[row], edge_attr], dim=1)))
+        h_0 = self.edge_init(torch.cat([x[row], edge_attr], dim=1))
+        if self.use_layer_norm:
+            h_0 = self.edge_init_norm(h_0)
+        h_0 = F.relu(h_0)
+
         h = h_0
 
         # DMPNN Conv layers
-        for layer in self.convs:
-            _, h = layer(edge_index, h)
-            h += h_0
-            h = F.dropout(F.relu(h), self.dropout, training=self.training)
+        for i, layer in enumerate(self.convs):
+            h_input = h
+
+            # DMPNN convolution
+            _, h_new = layer(edge_index, h)
+
+            # Layer normalization
+            if self.use_layer_norm:
+                h_new = self.layer_norms[i](h_new)
+
+            # Residual connections
+            if self.use_residual:
+                # Long skip to the initial layer
+                h_new = h_new + h_0
+
+                # Short skip to previous layer
+                if i > 0:  # Skip for first layer
+                    h_new = h_new + h_input
+
+            # Activation and dropout
+            h = F.dropout(F.relu(h_new), self.dropout, training=self.training)
 
         # Edge to node aggregation
         # Re-using the last layer's results for s
@@ -256,6 +297,8 @@ class GNN(nn.Module):
         depth (int): Number of layers in the encoder
         mode (str, optional): Operating mode, either 'denoise' or 'predict'. Defaults to 'denoise'
         dropout (float, optional): Dropout probability. Defaults to 0.1
+        use_layer_norm (bool, optional): Whether to use layer normalization in the encoder. Defaults to True
+        use_residual (bool, optional): Whether to use residual connections in the encoder. Defaults to True
     """
 
     @beartype
@@ -267,6 +310,8 @@ class GNN(nn.Module):
         depth: int,
         mode: str = "denoise",
         dropout: float = 0.1,
+        use_layer_norm: bool = True,
+        use_residual: bool = True,
     ):
         super().__init__()
         self.encoder = GNNEncoder(
@@ -276,6 +321,8 @@ class GNN(nn.Module):
             mode=mode,
             depth=depth,
             dropout=dropout,
+            use_layer_norm=use_layer_norm,
+            use_residual=use_residual,
         )
         self.head = GNNHead(hidden_size=hidden_size, dropout=dropout)
         self.decoder = GNNDecoder(
