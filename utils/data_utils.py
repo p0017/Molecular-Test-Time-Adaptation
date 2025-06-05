@@ -168,10 +168,10 @@ class ChemDataset(Dataset):
         self,
         smiles: np.ndarray,
         labels,
-        flip_prob: float = 0.75,
-        noise_std: float = 1.5,
-        node_mask_prob: float = 0.75,
-        edge_drop_prob: float = 0.75,
+        flip_prob: float = 0.5,
+        noise_std: float = 1.0,
+        node_mask_prob: float = 0.5,
+        edge_drop_prob: float = 0.5,
         precompute: bool = False,
     ):
         """Initialize ChemDataset with SMILES strings and labels.

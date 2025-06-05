@@ -208,7 +208,8 @@ class GNNDecoder(nn.Module):
         self.node_lin = nn.Linear(hidden_size, num_node_features)
         # Edge decoding layers
         self.edge_lin = nn.Linear(hidden_size, num_edge_features)
-        self.dropout = dropout
+        # increased dropout for encoder to avoid overfitting on training data
+        self.dropout = dropout * 2 
 
     def forward(self, graph_embedding, batch, edge_index):
         """Forward pass to decode node and edge features from graph embeddings.
