@@ -10,14 +10,14 @@ This repository investigates applying graph neural networks (GNNs) to predict mo
 
 ## Overview
 
-Molecular solubility prediction is a critical task in drug discovery, but models often struggle with out-of-distribution data. This project addresses this challenge by implementing test-time adaptation for graph neural networks and applying it to molecular solubility prediction.
+Molecular solubility prediction is a critical task in drug development, but models often struggle with distribution shifts between training and test data. This project addresses this by implementing test-time adaptation for graph neural networks and applying it to molecular solubility prediction.
 
 This project was carried out as part of the seminar **165.164 Selected Topics in Theoretical Chemistry** at TU Wien, under the supervision of [Prof. Esther Heid](https://hesther.github.io/).
 
 ### Key Features
-- Load and preprocess molecular graphs from CSV files
+- Loading and preprocessing molecular graphs from CSV files
 - Y-shaped GNN architecture with shared encoder and two task-specific heads
-- Combined supervised and self-supervised training
+- Combined supervised and self-supervised learning
 - Test-time adaptation for improved generalization on unseen data
 - Comprehensive performance analysis and visualization
 
@@ -77,5 +77,9 @@ Molecular-Test-Time-Adaptation/
 ├── report/                                # Project report
 └── data/                                  # Dataset files
 ```
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0 (GPL-3.0)](https://www.gnu.org/licenses/gpl-3.0).
 
 ---
