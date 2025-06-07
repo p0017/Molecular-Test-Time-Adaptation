@@ -8,6 +8,8 @@
 \usepackage{amsmath,amsfonts,amssymb}
 \usepackage{booktabs}
 \usepackage{hyperref}
+\usepackage[font=small,skip=2pt]{caption}  % 
+\setlength{\abovecaptionskip}{2pt}  
 
 \graphicspath{{../figures/}}
 
@@ -24,26 +26,26 @@
 \begin{abstract}
         Molecular solubility prediction is a critical task in drug development, but models often struggle with distribution shifts between training and test data. This project addresses this by implementing test-time adaptation for graph neural networks and applying it to molecular solubility prediction.
 
-        This project was carried out as part of the seminar \textbf{165.164 Selected Topics in Theoretical Chemistry} at TU Wien, under the supervision of \href{https://hesther.github.io/}{Prof. Esther Heid}.
+        This project was carried out as part of the seminar 165.164 Selected Topics in Theoretical Chemistry at TU Wien, under the supervision of \href{https://hesther.github.io/}{Prof. Esther Heid}.
 \end{abstract}
 
 \section{Introduction}
-Molecular solubility prediction is a critical task in drug development, directly impacting a compound's bioavailability and therapeutic potential. Experimental solubility measurement requires substantial time and resources, making computational prediction essential for screening large molecular databases in drug development \cite{llompart2024will}.
+Molecular solubility prediction is a critical task in drug development, directly impacting a compound's bioavailability and therapeutic potential. Experimental solubility measurement requires substantial time and resources, making computational prediction essential for screening large molecular databases \cite{llompart2024will}.
 
 Recent advances in solubility prediction have been driven by deep learning architectures and molecular embedding approaches. Feature-based neural networks, graph-based neural networks (GNNs), and structural attention methods have emerged as powerful predictive models \cite{llompart2024will}.
 
-However, when there is a certain distribution shift between the training and test data, as with \textit{OChemUnseen} \cite{llompart2024will} and \textit{AqSolDB} \cite{sorkun2019aqsoldb}, these models often struggle to generalize. This project aims to solve this by utilizing test-time adaptation (TTA) for graph neural networks (GNNs) to shift test set distributions towards the training set distribution, thereby improving generalization.
+However, when there is a certain distribution shift between the training and test data, as with \textit{AqSolDB} \cite{sorkun2019aqsoldb} and \textit{OChemUnseen} \cite{llompart2024will}, these models often struggle to generalize. This project aims to solve this by utilizing test-time adaptation (TTA) for graph neural networks (GNNs) to shift test set distributions towards the training set distribution, thereby improving generalization.
 
-TTA trains a model on a source domain, then adapts it at test time by performing a few self-supervised learning (SSL) steps on each test sample before prediction. It has been applied in various domains, such as semantic segmentation, object detection, medical image processing, video depth prediction, question answering, sentiment analysis, entity recognition, speech processing, social network analysis, as well as in protein and enzyme classification \cite{liang2025comprehensive,cui2025online}.
+TTA trains a model on a source domain, then adapts it at test time by performing a few self-supervised learning (SSL) steps on each test sample before prediction. It has been applied in various domains, such as semantic segmentation, object detection, medical image processing, video depth prediction, question answering, sentiment analysis, entity recognition, speech processing, social network analysis, as well as in protein and enzyme classification \cite{liang2025comprehensive, cui2025online}.
 
 \section{Methods}
 \subsection{Dataset}
 
-For this project, the \textit{AqSolDB} dataset \cite{llompart2024will} was used for training and validation. It contains about 8000 molecules as SMILES strings, along with their solubility values. For testing, the \textit{OChemUnseen} dataset \cite{sorkun2019aqsoldb} was used, which contains about 2000 molecules as SMILES strings, along with their solubility values. This dataset is fully orthogonal to the training dataset.
+For this project, the \textit{AqSolDB} dataset \cite{sorkun2019aqsoldb} is used for training and validation. It contains about 8000 molecules as SMILES strings, along with their solubility values. For testing, the \textit{OChemUnseen} dataset \cite{llompart2024will} is used, which contains about 2000 molecules as SMILES strings, along with their solubility values. This dataset is fully orthogonal to the training dataset.
 
-The SMILES strings were converted to molecular graphs using the RDKit library \cite{rdkit2025}, and one-hot encoded node and edge features were added. The node features included element type, number of bonds, electric charge, aromaticity atomic mass, and orbital hybridization, while the edge features included bond order, aromaticity, conjugation, and whether the bond is in a ring. The graphs were then converted to PyTorch Geometric \cite{fey2019fast} data objects.
+The SMILES strings are converted to molecular graphs using the RDKit library \cite{rdkit2025}, and one-hot encoded node and edge features are added. The node features included element type, number of bonds, electric charge, aromaticity atomic mass, and orbital hybridization, while the edge features included bond order, aromaticity, conjugation, and whether the bond is in a ring. The graphs are then converted to PyTorch Geometric \cite{fey2019fast} data objects.
 
-To enhance the distribution shift, the datasets were filtered as follows:
+To enhance the distribution shift, the datasets are filtered as follows:
 \begin{itemize}
         \item The training set contains molecules from \textit{AqSolDB} with 6-19 atoms and no amino groups.
         \item The validation set contains molecules from \textit{AqSolDB} with $\leq 5$ atoms and no amino groups.
@@ -62,22 +64,22 @@ The model used for this project is a Y-shaped architecture, which consists of a 
         \label{fig:model}
 \end{figure}
 
-The encoder is a convolutional bidirectional message passing neural network (MPNN), which is a GNN that applies convolutional operations to aggregate information from neighboring nodes in both directions through iterative message passing. It consists of two graph convolutional layers, followed by a global pooling layer that aggregates the node features into a single embedding vector of size 16 for each graph. This embedding vector is an information-dense representation of the molecular graph. A 2D projection of the embedding space with corresponding solubility values is shown in Figure \ref{fig:solubility}, visualized using both t-SNE \cite{van2008visualizing} and UMAP \cite{mcinnes2018umap}.
+The encoder is a convolutional bidirectional message passing neural network (MPNN), which is a GNN that applies convolutional operations to aggregate information from neighboring nodes in both directions through iterative message passing. It consists of two graph convolutional layers, followed by a global pooling layer that aggregates the node features into a single embedding vector of size 16 for each graph. This embedding vector is an information-dense representation of the molecular graph. A 2D projection of the 16-dimensional embedding space with corresponding solubility values is shown in Figure \ref{fig:solubility}, visualized using two dimensionality reduction techniques, t-SNE \cite{van2008visualizing} and UMAP \cite{mcinnes2018umap}.
 
 The decoder consists of two fully connected layers that reconstruct node and edge features from the embedding vectors. The prediction head also employs two fully connected layers that map the same embedding vectors to the predicted solubility value, creating a multi-task learning architecture.
 
 \begin{figure}[htbp]
         \centering
         \includegraphics[width=1\textwidth]{solubility.pdf}
-        \caption{2D projection of the embedding vectors with solubility.}
+        \caption{2D projection of the embedding vectors with their corresponding solubility.}
         \label{fig:solubility}
 \end{figure}
 
 \subsection{Training}
 
-Following our architecture design, the model can be trained on two tasks. The first one is a self-supervised task, were node and edge features are denoised and reconstructed. For this, the features were pertrubed by randomly flipping a percentage of the one-hot encoded node and edge features, as well as randomly deleting edges. The encoder then learns to create an information-dense representation in form of the embedding vector, from which the decoder learns to reconstruct the denoised node and edge features. The second task is the supervised task, where the encoder also learns to create a representation, from which the preidtcion head learns to predict the solubility value.
+Following our architecture design, the model can be trained on two tasks. The first one is a self-supervised task, where noisy node and edge features are denoised and reconstructed. For this, the features are perturbed by randomly flipping a percentage of the one-hot encoded node and edge features, as well as randomly deleting edges. The encoder then learns to create an information-dense representation in form of the embedding vector, from which the decoder learns to reconstruct the denoised node and edge features. The second task is the supervised task, where the encoder also learns to create an embedding vector, from which the preidtcion head learns to predict the solubility value.
 
-Following established approaches in the literature, both tasks are trained simultaneously by combining their respective losses \cite{cui2025online, wang2022test}. We implemented this by summing the denoising and prediction losses, and also experimented with weighted combinations of the task-specific losses, though this did not yield performance improvements.
+Following the literature, both tasks are trained simultaneously by combining their respective losses \cite{cui2025online, wang2022test}. We implemented this by summing the denoising and prediction losses, and also experimented with weighted combinations of the task-specific losses, though this did not yield any performance improvements.
 
 The model was trained for 25 epochs with a batch size of 1024 using the Adam optimizer. Hyperparameters were optimized on the validation set. Different regularization strategies were applied to each component: the decoder used higher weight decay of $10^{-2}$ and a dropout of 0.4 to prevent overfitting on the self-supervised task, while the encoder and prediction head used more a moderate weight decay of $10^{-4}$ and a dropout of 0.2. The learning rate was set to $9.5 \cdot 10^{-3}$ and training was performed on a single NVIDIA GeForce GTX 960M GPU.
 
@@ -90,21 +92,21 @@ The model was trained for 25 epochs with a batch size of 1024 using the Adam opt
 
 \subsection{Test-time Adaptation and Prediction}
 
-For TTA, each test sample is processed individually. The encoder is adapted to the specific molecular structure through a few gradient descent steps on the self-supervised loss, after which the adapted model predicts the solubility using the standard prediction head. The model is then reset to its original state for the next test sample. The step size and number of gradient steps were optimized to $1.2 \cdot 10^{-3}$ and 5 steps, respectively. This process shifts the embedding vectors of test samples towards the training set distribution, theoretically improving generalization.
+For TTA, each test sample is processed individually. The encoder is adapted to the specific molecular structure through a few gradient descent steps on the self-supervised loss, after which the adapted model predicts the solubility using the standard prediction head. The model is then reset to its original state for the next test sample. The step size and number of gradient steps were optimized to $1.2 \cdot 10^{-3}$ and 5 steps, respectively.
 
-The distribution shift and effect of TTA can be seen in the 2D projections of the embedding space shown in Figures \ref{fig:sets} and \ref{fig:sets_TTA}. Interestingly, while t-SNE shows a clear shift of the test and validation sets towards the training set, UMAP does not show any shift. This discrepancy likely arises from the differences between these dimensionality reduction techniques: t-SNE focuses on preserving local neighborhood structure and can amplify small differences, while UMAP prioritizes preservation of global structure. This suggests that the effects of TTA may be subtle and local for these particular datasets.
+The distribution shift and effect of TTA can be seen in the 2D projections of the embedding space shown in Figures \ref{fig:sets} and \ref{fig:sets_TTA}.
 
 \begin{figure}[htbp]
         \centering
         \includegraphics[width=1\textwidth]{sets.pdf}
-        \caption{2D projection of the embedding vectors with sets.}
+        \caption{2D projection of the embedding vectors with their corresponding sets.}
         \label{fig:sets}
 \end{figure}
 
 \begin{figure}[htbp]
         \centering
         \includegraphics[width=1\textwidth]{sets_TTA.pdf}
-        \caption{2D projection of the embedding vectors with set centroids.}
+        \caption{2D projection of the embedding vectors before and after TTA.}
         \label{fig:sets_TTA}
 \end{figure}
 
@@ -125,16 +127,17 @@ The distribution shift and effect of TTA can be seen in the 2D projections of th
         \label{tab:results}
 \end{table}
 
-As shown in Table \ref{tab:results}, TTA did not improve the performance of the model on either test set, which is surprising given that the test set centroids clearly shift towards the training set centroid after TTA in the t-SNE projections, as shown in Figure \ref{fig:sets_TTA}. However, the absence of any such shifts in UMAP projections suggests that these changes may be more subtle, which could explain the lack of performance improvement.
+As shown in Table \ref{tab:results}, TTA did not improve the performance on either test set, despite clear distribution shifts towards the training set after TTA in the t-SNE projections, as demonstrated in Figure \ref{fig:sets_TTA}. However, UMAP does not show any corresponding shift.
 
-For comparison, a reference model trained solely on the prediction task without any SSL was also included. The results demonstrate that SSL training clearly improves prediction performance, with the SSL-trained models achieving substantially lower RMSE values across both the validation set and the 20 Atom test set. Interestingly, the reference model performed better on the NH2 test set, suggesting that the amino group distribution shift may be particularly challenging for the SSL approach used in this study.
+This probably arises from the fundamental differences between these dimensionality reduction techniques. t-SNE focuses on preserving local neighborhood structure and can amplify small differences, while UMAP prioritizes global structure preservation. This suggests that the effects of TTA may be too subtle and local for these particular datasets to improve predictions.
 
-\section{Code}
-The code for this project is available at \href{https://github.com/p0017/Molecular-Test-Time-Adaptation}{github.com/p0017/Molecular-Test-Time-Adaptation} under the \href{(https://www.gnu.org/licenses/gpl-3.0)}{GPL-3.0} license.
+A reference model trained solely on the prediction task demonstrates that SSL training clearly improves prediction performance, with the SSL-trained models achieving substantially lower RMSE values across both the validation and the 20 Atom test set. Interestingly, the reference model performed better on the NH2 test set, suggesting that the amino group may be challenging for the SSL approach used here.
+
+The code for this project is available at \href{https://github.com/p0017/Molecular-Test-Time-Adaptation}{github.com/p0017/Molecular-Test-Time-Adaptation} under the \href{https://www.gnu.org/licenses/gpl-3.0}{GPL-3.0} license.
 
 \section{Conclusion}
 
-This study implemented test-time adaptation (TTA) for graph neural networks (GNNs) and applied it to molecular solubility prediction. While TTA successfully shifted test sample embeddings towards the training distribution in t-SNE visualizations, this did not translate into improved predictive performance. The discrepancy between t-SNE and UMAP visualizations suggests that the distribution shifts may be more subtle and local. Future work could explore alternative self-supervised learning (SSL) tasks, different adaptation strategies, or investigate TTA effectiveness on datasets with more pronounced distribution shifts.
+This study implemented test-time adaptation (TTA) for graph neural networks (GNNs) and applied it to molecular solubility prediction. While TTA successfully shifted test and validation set embeddings towards the training distribution in t-SNE visualizations, the UMAP visualizations suggest that these shifts may be too subtle and local to improve predictions. Future work could explore alternative self-supervised learning (SSL) tasks, different adaptation strategies, or investigate TTA effectiveness on datasets with more pronounced distribution shifts.
 
 \bibliographystyle{plain}
 \bibliography{references}
