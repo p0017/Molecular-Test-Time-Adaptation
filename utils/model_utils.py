@@ -49,9 +49,6 @@ class GNNEncoder(nn.Module):
         hidden_size (int): Size of hidden representations
         mode (str): Operating mode, either 'denoise' or 'predict'
         depth (int): Number of DMPNN convolution layers
-        dropout (float): Dropout probability for regularization
-        use_layer_norm (bool): Whether to use layer normalization in the model
-        use_residual (bool): Whether to use residual connections in the model
     Returns:
         torch.Tensor: Graph-level embedding after global pooling
     Note:
@@ -67,31 +64,15 @@ class GNNEncoder(nn.Module):
         hidden_size: int,
         mode: str,
         depth: int,
-        dropout: float,
-        use_layer_norm: bool = True,
-        use_residual: bool = True,
     ):
         super().__init__()
         self.depth = depth
         self.hidden_size = hidden_size
-        self.dropout = dropout
         self.mode = mode
-        self.use_layer_norm = use_layer_norm
-        self.use_residual = use_residual
 
         # Encoder layers
         self.edge_init = nn.Linear(num_node_features + num_edge_features, hidden_size)
         self.convs = nn.ModuleList([DMPNNConv(hidden_size) for _ in range(depth)])
-
-        # Add layer normalization for each conv layer
-        if use_layer_norm:
-            self.layer_norms = nn.ModuleList(
-                [nn.LayerNorm(hidden_size) for _ in range(depth)]
-            )
-            # Layer norm for edge initialization
-            self.edge_init_norm = nn.LayerNorm(hidden_size)
-            # Layer norm for edge-to-node conversion
-            self.edge_to_node_norm = nn.LayerNorm(hidden_size)
 
         self.edge_to_node = nn.Linear(num_node_features + hidden_size, hidden_size)
         self.pool = global_add_pool  # Not learnable
@@ -107,7 +88,6 @@ class GNNEncoder(nn.Module):
             - Supports 'denoise' mode (uses noisy features) and 'predict' mode (uses clean features)
             - Includes workaround for size mismatch between edge and node representations
               that occurs with batch size 1
-            - Uses residual connections and dropout in DMPNN convolution layers
         """
         edge_index, edge_attr, batch = data.edge_index, data.edge_attr, data.batch
 
@@ -125,34 +105,18 @@ class GNNEncoder(nn.Module):
         # Edge initialization
         row, _ = edge_index
         h_0 = self.edge_init(torch.cat([x[row], edge_attr], dim=1))
-        if self.use_layer_norm:
-            h_0 = self.edge_init_norm(h_0)
         h_0 = F.relu(h_0)
 
         h = h_0
 
         # DMPNN Conv layers
-        for i, layer in enumerate(self.convs):
-            h_input = h
-
+        for layer in self.convs:
+            
             # DMPNN convolution
             _, h_new = layer(edge_index, h)
 
-            # Layer normalization
-            if self.use_layer_norm:
-                h_new = self.layer_norms[i](h_new)
-
-            # Residual connections
-            if self.use_residual:
-                # Long skip to the initial layer
-                h_new = h_new + h_0
-
-                # Short skip to previous layer
-                if i > 0:  # Skip for first layer
-                    h_new = h_new + h_input
-
-            # Activation and dropout
-            h = F.dropout(F.relu(h_new), self.dropout, training=self.training)
+            # Activation
+            h = F.relu(h_new)
 
         # Edge to node aggregation
         # Re-using the last layer's results for s
@@ -188,11 +152,9 @@ class GNNDecoder(nn.Module):
         hidden_size (int): Dimension of the input graph embeddings
         num_node_features (int): Number of output node features to decode
         num_edge_features (int): Number of output edge features to decode
-        dropout (float): Dropout probability for regularization
     Attributes:
         node_lin (nn.Linear): Linear layer for decoding node features
         edge_lin (nn.Linear): Linear layer for decoding edge features
-        dropout (float): Dropout probability
     """
 
     @beartype
@@ -201,15 +163,12 @@ class GNNDecoder(nn.Module):
         hidden_size: int,
         num_node_features: int,
         num_edge_features: int,
-        dropout: float,
     ):
         super().__init__()
         # Node decoding layer
         self.node_lin = nn.Linear(hidden_size, num_node_features)
         # Edge decoding layers
         self.edge_lin = nn.Linear(hidden_size, num_edge_features)
-        # increased dropout for encoder to avoid overfitting on training data
-        self.dropout = dropout * 2 
 
     def forward(self, graph_embedding, batch, edge_index):
         """Forward pass to decode node and edge features from graph embeddings.
@@ -235,7 +194,7 @@ class GNNDecoder(nn.Module):
         expanded_nodes = torch.cat(expanded_nodes, dim=0)  # total_nodes x hidden_size
 
         # Decode node features
-        x_hat = F.dropout(expanded_nodes, p=self.dropout, training=self.training)
+        x_hat = expanded_nodes
         x_hat = self.node_lin(x_hat)
 
         # Decode edge features
@@ -249,7 +208,7 @@ class GNNDecoder(nn.Module):
         expanded_edges = graph_embedding[edge_batch]  # shape = (num_edges, hidden_size)
 
         # Decode edge features
-        edge_hat = F.dropout(expanded_edges, p=self.dropout, training=self.training)
+        edge_hat = expanded_edges
         edge_hat = self.edge_lin(edge_hat)
 
         return x_hat, edge_hat
@@ -258,19 +217,17 @@ class GNNDecoder(nn.Module):
 @beartype
 class GNNHead(nn.Module):
     """Initialize GNN prediction head for solubility prediction.
-    Creates a simple FFN with two linear layers and dropout
+    Creates a simple FFN with two linear layers
     to predict solubility from graph embeddings.
     Args:
         hidden_size (int): Size of hidden layers and input embedding dimension
-        dropout (float): Dropout rate for regularization
     """
 
-    def __init__(self, hidden_size: int, dropout: float):
+    def __init__(self, hidden_size: int):
         super().__init__()
         # Only some FFN layers which get the embedding as input
         self.ffn1 = nn.Linear(hidden_size, hidden_size)
         self.ffn2 = nn.Linear(hidden_size, 1)
-        self.dropout = dropout
 
     def forward(self, graph_embedding):
         """Forward pass through the prediction head.
@@ -280,7 +237,6 @@ class GNNHead(nn.Module):
             Predicted solubility values with last dimension squeezed
         """
         x = F.relu(self.ffn1(graph_embedding))
-        x = F.dropout(x, self.dropout, training=self.training)
         return self.ffn2(x).squeeze(-1)
 
 
@@ -297,9 +253,6 @@ class GNN(nn.Module):
         hidden_size (int): Hidden dimension size for all components
         depth (int): Number of layers in the encoder
         mode (str, optional): Operating mode, either 'denoise' or 'predict'. Defaults to 'denoise'
-        dropout (float, optional): Dropout probability. Defaults to 0.1
-        use_layer_norm (bool, optional): Whether to use layer normalization in the encoder. Defaults to True
-        use_residual (bool, optional): Whether to use residual connections in the encoder. Defaults to True
     """
 
     @beartype
@@ -310,9 +263,6 @@ class GNN(nn.Module):
         hidden_size: int,
         depth: int,
         mode: str = "denoise",
-        dropout: float = 0.1,
-        use_layer_norm: bool = True,
-        use_residual: bool = True,
     ):
         super().__init__()
         self.encoder = GNNEncoder(
@@ -321,16 +271,12 @@ class GNN(nn.Module):
             hidden_size=hidden_size,
             mode=mode,
             depth=depth,
-            dropout=dropout,
-            use_layer_norm=use_layer_norm,
-            use_residual=use_residual,
         )
-        self.head = GNNHead(hidden_size=hidden_size, dropout=dropout)
+        self.head = GNNHead(hidden_size=hidden_size)
         self.decoder = GNNDecoder(
             hidden_size=hidden_size,
             num_node_features=num_node_features,
             num_edge_features=num_edge_features,
-            dropout=dropout,
         )
 
     def set_mode(self, mode: str):
