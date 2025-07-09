@@ -57,6 +57,7 @@ def train_epoch(
         node_out, edge_out = model(batch)
         node_loss = loss(node_out, batch.x)
         edge_loss = loss(edge_out, batch.edge_attr)
+        # Just summing the two SSL losses
         denoise_loss = node_loss + edge_loss
 
         # Get losses for the prediction task
@@ -64,8 +65,9 @@ def train_epoch(
         pred_out = model(batch)
         pred_loss = loss(pred_out, stdzer(batch.y))
 
-        # Combine the losses as a sum and backpropagate them
-        combined_loss = denoise_loss + pred_loss
+        # Combine the losses as a weighted sum and backpropagate them
+        # SSL task is weighted twice as much as the prediction task
+        combined_loss = 2 * denoise_loss + pred_loss
         combined_loss.backward()
         optimizer.step()
 
@@ -75,10 +77,7 @@ def train_epoch(
         # Wang et al. did a weighted sum of self-supervised and supervised losses
         # https://doi.org/10.48550/arXiv.2210.08813
 
-        # Experimented with different weightings for the losses
-        # Made optimization complicated and didn't yield better results
-
-        # Also experimented with alternating backpropagation steps for each task
+        # Experimented with alternating backpropagation steps for each task
         # Results were worse
 
         combined_loss_count += combined_loss.item()
@@ -144,7 +143,7 @@ def train_epoch_without_SSL(
 
 
 @beartype
-def pred(model, loader, mode: str, stdzer: Standardizer) -> list:
+def pred(model, loader, mode: str, stdzer: Standardizer):
     """Predict with the model on either denoising or prediction task.
     Performs a simple forward pass without test-time adaptation.
     Args:
@@ -161,18 +160,21 @@ def pred(model, loader, mode: str, stdzer: Standardizer) -> list:
         model.set_mode("denoise")
         model.eval()
 
-        preds = []
+        node_preds = []
+        edge_preds = []
+        # Getting the denoised features for both nodes and edges
         with torch.no_grad():
             for batch in loader:
                 batch = batch.to(device)
                 node_out, edge_out = model(batch)
-                node_out.cpu().detach().flatten().tolist()
-                preds.extend(
+                node_preds.extend(
                     node_out.cpu().detach().flatten().tolist()
-                    + edge_out.cpu().detach().flatten().tolist()
+                )
+                edge_preds.extend(
+                    edge_out.cpu().detach().flatten().tolist()
                 )
 
-        return preds
+        return node_preds, edge_preds
 
     elif mode == "predict":
         model.set_mode("predict")
@@ -211,24 +213,25 @@ def pred_with_TTA(model, loader, lr: float, n_steps: int, stdzer: Standardizer) 
     for param in model.encoder.parameters():
         param.requires_grad = True
 
-    # Unfreeze the decoder
+    # Freeze the decoder
     for param in model.decoder.parameters():
-        param.requires_grad = True
+        param.requires_grad = False
 
     # Freeze the prediction head
     for param in model.head.parameters():
         param.requires_grad = False
 
     model = deepcopy(model).to(device)
-    model_before_step = deepcopy(model).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    # Mean loss due to different graph sizes
     loss = nn.MSELoss(reduction="mean")
 
     preds = []
 
     for batch in loader:
         batch = batch.to(device)
-        
+
+        encoder_state = deepcopy(model.encoder.state_dict())
         model.set_mode("denoise")
         model.train()
         
@@ -239,8 +242,9 @@ def pred_with_TTA(model, loader, lr: float, n_steps: int, stdzer: Standardizer) 
             node_out, edge_out = model(batch)
             node_loss = loss(node_out, batch.x)
             edge_loss = loss(edge_out, batch.edge_attr)
-            # Losses get the same weighting as in the training step
             denoise_loss = node_loss + edge_loss
+            denoise_loss = denoise_loss * 2
+            # Losses get the same weighting as in the training step
             denoise_loss.backward()
             optimizer.step()
 
@@ -252,7 +256,7 @@ def pred_with_TTA(model, loader, lr: float, n_steps: int, stdzer: Standardizer) 
             pred = stdzer(out, rev=True)
             preds.extend(pred.cpu().detach().tolist())
 
-        model = deepcopy(model_before_step)
+        model.encoder.load_state_dict(encoder_state)
 
     return preds
 
@@ -275,17 +279,17 @@ def embeddings_with_TTA(model, loader, lr: float, n_steps: int) -> list:
     for param in model.encoder.parameters():
         param.requires_grad = True
 
-    # Unfreeze the decoder
+    # Freeze the decoder
     for param in model.decoder.parameters():
-        param.requires_grad = True
+        param.requires_grad = False
 
     # Freeze the prediction head
     for param in model.head.parameters():
         param.requires_grad = False
 
     model = deepcopy(model).to(device)
-    model_before_step = deepcopy(model).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    # Mean loss due to different graph sizes
     loss = nn.MSELoss(reduction="mean")
 
     embeddings = []
@@ -293,6 +297,7 @@ def embeddings_with_TTA(model, loader, lr: float, n_steps: int) -> list:
     for batch in loader:
         batch = batch.to(device)
         
+        encoder_state = deepcopy(model.encoder.state_dict())
         model.set_mode("denoise")
         model.train()
         
@@ -304,6 +309,8 @@ def embeddings_with_TTA(model, loader, lr: float, n_steps: int) -> list:
             node_loss = loss(node_out, batch.x)
             edge_loss = loss(edge_out, batch.edge_attr)
             denoise_loss = node_loss + edge_loss
+            denoise_loss = denoise_loss * 2
+            # Losses get the same weighting as in the training step
             denoise_loss.backward()
             optimizer.step()
 
@@ -315,6 +322,6 @@ def embeddings_with_TTA(model, loader, lr: float, n_steps: int) -> list:
             embedding = model.get_embedding(batch)
             embeddings.extend(embedding.cpu().detach().numpy())
 
-        model = deepcopy(model_before_step)
+        model.encoder.load_state_dict(encoder_state)
 
     return embeddings

@@ -1,0 +1,319 @@
+// Computational graph for the feedforward sweep
+digraph GNN {
+	graph [label=<<B>GNN</B><br align='left'/>100 tensors total (92.9 MB)<br align='left'/>2913 params total (13.0 KB)<br align='left'/>> labeljust=left labelloc=t ordering=out rankdir=BT]
+	node [ordering=out]
+	input_1 [label=<<b>input_1</b><br/>x13214 (103.3 KB)<br/>@input.data.batch> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_1 -> max_4_59 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_1 -> view_10_60 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_2 [label=<<b>input_2</b><br/>26570x7 (726.6 KB)<br/>@input.data.edge_attr> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_2 -> cat_1_4 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 [label=<<b>input_3</b><br/>2x26570 (415.3 KB)<br/>@input.data.edge_index> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_3 -> unbind_1_1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> unbind_2_2 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> unbind_3_7 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> unbind_4_8 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> getitem_2_9 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> getitem_3_10 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> unbind_5_23 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> unbind_6_24 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> getitem_5_25 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> getitem_6_26 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> unbind_7_39pass1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> unbind_8_40 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> getitem_8_41pass1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> getitem_9_42 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> unbind_7_39pass2 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> unbind_9_54 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> getitem_8_41pass2 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_3 -> getitem_11_55 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_4 [label=<<b>input_4</b><br/>13214x44 (2.2 MB)<br/>@input.data.x> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_4 -> getitem_1_3 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_4 -> cat_2_56 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	input_5 [label=<<b>input_5</b><br/>x1024 (4.1 KB)<br/>@input.data.y> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_6 [label=<<b>input_6</b><br/>x1024 (8.1 KB)<br/>@input.data.store.inc_dict.x> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_7 [label=<<b>input_7</b><br/>x1024 (8.1 KB)<br/>@input.data.store.inc_dict.edge_index> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_8 [label=<<b>input_8</b><br/>x1024 (8.1 KB)<br/>@input.data.store.inc_dict.edge_attr> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_9 [label=<<b>input_9</b><br/>x1024 (8.1 KB)<br/>@input.data.store.inc_dict.y> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_10 [label=<<b>input_10</b><br/>x1024 (8.1 KB)<br/>@input.data.store.inc_dict.x_noisy> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_11 [label=<<b>input_11</b><br/>13214x44 (2.2 MB)<br/>@input.data.store.mapping.x_noisy> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_12 [label=<<b>input_12</b><br/>x1025 (8.1 KB)<br/>@input.data.store.mapping.ptr> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_13 [label=<<b>input_13</b><br/>x1025 (8.1 KB)<br/>@input.data.store.slice_dict.x> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_14 [label=<<b>input_14</b><br/>x1025 (8.1 KB)<br/>@input.data.store.slice_dict.edge_index> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_15 [label=<<b>input_15</b><br/>x1025 (8.1 KB)<br/>@input.data.store.slice_dict.edge_attr> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_16 [label=<<b>input_16</b><br/>x1025 (8.1 KB)<br/>@input.data.store.slice_dict.y> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_17 [label=<<b>input_17</b><br/>x1025 (8.1 KB)<br/>@input.data.store.slice_dict.smiles> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	input_18 [label=<<b>input_18</b><br/>x1025 (8.1 KB)<br/>@input.data.store.slice_dict.x_noisy> color=black fillcolor="#98FB98" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	unbind_1_1 [label=<<b>unbind_1_1</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	unbind_2_2 [label=<<b>unbind_2_2</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_1_3 [label=<<b>getitem_1_3</b><br/>26570x44 (4.5 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	cat_1_4 [label=<<b>cat_1_4</b><br/>26570x51 (5.2 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	linear_1_5 [label=<<b>linear_1_5</b><br/>26570x16 (1.6 MB)<br/>params: 16x51, x16<br/>@encoder.edge_init> color=black fillcolor="#E6E6E6" fontcolor=black ordering=out shape=box style="filled,solid"]
+	relu_1_6 [label=<<b>relu_1_6</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	unbind_3_7 [label=<<b>unbind_3_7</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	unbind_4_8 [label=<<b>unbind_4_8</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_2_9 [label=<<b>getitem_2_9</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_3_10 [label=<<b>getitem_3_10</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	max_1_11 [label=<<b>max_1_11</b><br/>x1 (104 B)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_1_12 [label=<<b>view_1_12</b><br/>26570x1 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	expandas_1_13 [label=<<b>expandas_1_13</b><br/>26570x16 (3.2 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	newzeros_1_14 [label=<<b>newzeros_1_14</b><br/>13214x16 (826.0 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	scatteradd_1_15 [label=<<b>scatteradd_1_15</b><br/>13214x16 (826.0 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_2_16 [label=<<b>view_2_16</b><br/>13285x2x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	flip_1_17 [label=<<b>flip_1_17</b><br/>13285x2x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_3_18 [label=<<b>view_3_18</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_4_19 [label=<<b>getitem_4_19</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	sub_1_20 [label=<<b>sub_1_20</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	linear_2_21 [label=<<b>linear_2_21</b><br/>26570x16 (1.6 MB)<br/>params: 16x16, x16<br/>@encoder.convs.0.linear> color=black fillcolor="#E6E6E6" fontcolor=black ordering=out shape=box style="filled,solid"]
+	relu_2_22 [label=<<b>relu_2_22</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	unbind_5_23 [label=<<b>unbind_5_23</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	unbind_6_24 [label=<<b>unbind_6_24</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_5_25 [label=<<b>getitem_5_25</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_6_26 [label=<<b>getitem_6_26</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	max_2_27 [label=<<b>max_2_27</b><br/>x1 (104 B)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_4_28 [label=<<b>view_4_28</b><br/>26570x1 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	expandas_2_29 [label=<<b>expandas_2_29</b><br/>26570x16 (3.2 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	newzeros_2_30 [label=<<b>newzeros_2_30</b><br/>13214x16 (826.0 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	scatteradd_2_31 [label=<<b>scatteradd_2_31</b><br/>13214x16 (826.0 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_5_32 [label=<<b>view_5_32</b><br/>13285x2x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	flip_2_33 [label=<<b>flip_2_33</b><br/>13285x2x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_6_34 [label=<<b>view_6_34</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_7_35 [label=<<b>getitem_7_35</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	sub_2_36 [label=<<b>sub_2_36</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	linear_3_37 [label=<<b>linear_3_37</b><br/>26570x16 (1.6 MB)<br/>params: 16x16, x16<br/>@encoder.convs.1.linear> color=black fillcolor="#E6E6E6" fontcolor=black ordering=out shape=box style="filled,solid"]
+	relu_3_38pass1 [label=<<b>relu_3_38:1</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	unbind_7_39pass1 [label=<<b>unbind_7_39:1</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	unbind_8_40 [label=<<b>unbind_8_40</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_8_41pass1 [label=<<b>getitem_8_41:1</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_9_42 [label=<<b>getitem_9_42</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	max_3_43pass1 [label=<<b>max_3_43:1</b><br/>x1 (104 B)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_7_44pass1 [label=<<b>view_7_44:1</b><br/>26570x1 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	expandas_3_45pass1 [label=<<b>expandas_3_45:1</b><br/>26570x16 (3.2 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	newzeros_3_46pass1 [label=<<b>newzeros_3_46:1</b><br/>13214x16 (826.0 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	scatteradd_3_47pass1 [label=<<b>scatteradd_3_47:1</b><br/>13214x16 (826.0 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_8_48pass1 [label=<<b>view_8_48:1</b><br/>13285x2x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	flip_3_49pass1 [label=<<b>flip_3_49:1</b><br/>13285x2x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_9_50pass1 [label=<<b>view_9_50:1</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_10_51pass1 [label=<<b>getitem_10_51:1</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	sub_3_52pass1 [label=<<b>sub_3_52:1</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	linear_4_53pass1 [label=<<b>linear_4_53:1</b><br/>26570x16 (1.6 MB)<br/>params: 16x16, x16<br/>@encoder.convs.2.linear:1> color=black fillcolor="#E6E6E6" fontcolor=black ordering=out shape=box style="filled,solid"]
+	relu_3_38pass2 [label=<<b>relu_3_38:2</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	unbind_7_39pass2 [label=<<b>unbind_7_39:2</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	unbind_9_54 [label=<<b>unbind_9_54</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_8_41pass2 [label=<<b>getitem_8_41:2</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_11_55 [label=<<b>getitem_11_55</b><br/>x26570 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	max_3_43pass2 [label=<<b>max_3_43:2</b><br/>x1 (104 B)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_7_44pass2 [label=<<b>view_7_44:2</b><br/>26570x1 (207.7 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	expandas_3_45pass2 [label=<<b>expandas_3_45:2</b><br/>26570x16 (3.2 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	newzeros_3_46pass2 [label=<<b>newzeros_3_46:2</b><br/>13214x16 (826.0 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	scatteradd_3_47pass2 [label=<<b>scatteradd_3_47:2</b><br/>13214x16 (826.0 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_8_48pass2 [label=<<b>view_8_48:2</b><br/>13285x2x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	flip_3_49pass2 [label=<<b>flip_3_49:2</b><br/>13285x2x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_9_50pass2 [label=<<b>view_9_50:2</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	getitem_10_51pass2 [label=<<b>getitem_10_51:2</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	sub_3_52pass2 [label=<<b>sub_3_52:2</b><br/>26570x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	linear_4_53pass2 [label=<<b>linear_4_53:2</b><br/>26570x16 (1.6 MB)<br/>params: 16x16, x16<br/>@encoder.convs.2.linear:2> color=black fillcolor="#E6E6E6" fontcolor=black ordering=out shape=box style="filled,solid"]
+	cat_2_56 [label=<<b>cat_2_56</b><br/>13214x60 (3.0 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	linear_5_57 [label=<<b>linear_5_57</b><br/>13214x16 (826.0 KB)<br/>params: 16x60, x16<br/>@encoder.edge_to_node> color=black fillcolor="#E6E6E6" fontcolor=black ordering=out shape=box style="filled,solid"]
+	relu_4_58 [label=<<b>relu_4_58</b><br/>13214x16 (826.0 KB)<br/>@encoder> color=black fillcolor=white fontcolor=black ordering=out shape=box style="filled,solid"]
+	relu_4_58 -> expandas_4_61 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	relu_4_58 -> newzeros_4_62 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	relu_4_58 -> scatteradd_4_63 [label=<<FONT POINT-SIZE='10'><b>arg 3</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	max_4_59 [label=<<b>max_4_59</b><br/>x1 (104 B)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	view_10_60 [label=<<b>view_10_60</b><br/>13214x1 (103.4 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	expandas_4_61 [label=<<b>expandas_4_61</b><br/>13214x16 (1.6 MB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	newzeros_4_62 [label=<<b>newzeros_4_62</b><br/>1024x16 (64.1 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	scatteradd_4_63 [label=<<b>scatteradd_4_63</b><br/>1024x16 (64.1 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	linear_6_64 [label=<<b>linear_6_64</b><br/>1024x16 (64.1 KB)<br/>params: 16x16, x16<br/>@head.ffn1> color=black fillcolor="#E6E6E6" fontcolor=black ordering=out shape=box style="filled,solid"]
+	relu_5_65 [label=<<b>relu_5_65</b><br/>1024x16 (64.1 KB)> color=black fillcolor=white fontcolor=black ordering=out shape=oval style="filled,solid"]
+	linear_7_66 [label=<<b>linear_7_66</b><br/>1024x1 (4.1 KB)<br/>params: 1x16, x1<br/>@head.ffn2> color=black fillcolor="#E6E6E6" fontcolor=black ordering=out shape=box style="filled,solid"]
+	squeeze_1_67 [label=<<b>squeeze_1_67</b><br/>x1024 (4.1 KB)<br/>@head> color=black fillcolor=white fontcolor=black ordering=out shape=box style="filled,solid"]
+	squeeze_1_67 -> output_1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	output_1 [label=<<b>output_1</b><br/>x1024 (4.1 KB)<br/>@output> color=black fillcolor="#ff9999" fontcolor=black ordering=out shape=oval style="filled,solid"]
+	{
+		rank=sink
+		output_1
+	}
+	subgraph cluster_encoder_pass1 {
+		fillcolor=white label=<<B>@encoder</B><br align='left'/>(GNNEncoder)<br align='left'/>> labelloc=b penwidth=5.0 style="filled,solid"
+		unbind_1_1 -> getitem_1_3 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		getitem_1_3 -> cat_1_4 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		cat_1_4 -> linear_1_5 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		linear_1_5 -> relu_1_6 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_1_6 -> expandas_1_13 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_1_6 -> newzeros_1_14 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_1_6 -> scatteradd_1_15 [label=<<FONT POINT-SIZE='10'><b>arg 3</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_1_6 -> view_2_16 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		linear_2_21 -> relu_2_22 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_2_22 -> expandas_2_29 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_2_22 -> newzeros_2_30 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_2_22 -> scatteradd_2_31 [label=<<FONT POINT-SIZE='10'><b>arg 3</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_2_22 -> view_5_32 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		linear_3_37 -> relu_3_38pass1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_3_38pass1 -> expandas_3_45pass1 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_3_38pass1 -> newzeros_3_46pass1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_3_38pass1 -> scatteradd_3_47pass1 [label=<<FONT POINT-SIZE='10'><b>arg 3</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_3_38pass1 -> view_8_48pass1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		linear_4_53pass1 -> relu_3_38pass2 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_3_38pass2 -> expandas_3_45pass2 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_3_38pass2 -> newzeros_3_46pass2 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_3_38pass2 -> scatteradd_3_47pass2 [label=<<FONT POINT-SIZE='10'><b>arg 3</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_3_38pass2 -> view_8_48pass2 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		scatteradd_3_47pass2 -> cat_2_56 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		cat_2_56 -> linear_5_57 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		linear_5_57 -> relu_4_58 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	}
+	subgraph cluster_head_pass1 {
+		fillcolor=white label=<<B>@head</B><br align='left'/>(GNNHead)<br align='left'/>> labelloc=b penwidth=5.0 style="filled,solid"
+		view_10_60 -> expandas_4_61 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		expandas_4_61 -> scatteradd_4_63 [label=<<FONT POINT-SIZE='10'><b>arg 2</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		newzeros_4_62 -> scatteradd_4_63 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		scatteradd_4_63 -> linear_6_64 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		linear_6_64 -> relu_5_65 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		relu_5_65 -> linear_7_66 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		linear_7_66 -> squeeze_1_67 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.edge_init_pass1" {
+			fillcolor=white label=<<B>@encoder.edge_init</B><br align='left'/>(Linear)<br align='left'/>> labelloc=b penwidth=4.0 style="filled,dashed"
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.0_pass1" {
+			fillcolor=white label=<<B>@encoder.convs.0</B><br align='left'/>(DMPNNConv)<br align='left'/>> labelloc=b penwidth=4.0 style="filled,solid"
+			unbind_3_7 -> getitem_4_19 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_2_9 -> max_1_11 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_2_9 -> view_1_12 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			scatteradd_1_15 -> getitem_4_19 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			view_2_16 -> flip_1_17 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			flip_1_17 -> view_3_18 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			view_3_18 -> sub_1_20 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_4_19 -> sub_1_20 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			sub_1_20 -> linear_2_21 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.1_pass1" {
+			fillcolor=white label=<<B>@encoder.convs.1</B><br align='left'/>(DMPNNConv)<br align='left'/>> labelloc=b penwidth=4.0 style="filled,solid"
+			unbind_5_23 -> getitem_7_35 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_5_25 -> max_2_27 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_5_25 -> view_4_28 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			scatteradd_2_31 -> getitem_7_35 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			view_5_32 -> flip_2_33 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			flip_2_33 -> view_6_34 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			view_6_34 -> sub_2_36 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_7_35 -> sub_2_36 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			sub_2_36 -> linear_3_37 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.2_pass1" {
+			fillcolor=white label=<<B>@encoder.convs.2:1</B><br align='left'/>(DMPNNConv)<br align='left'/>> labelloc=b penwidth=4.0 style="filled,solid"
+			unbind_7_39pass1 -> getitem_10_51pass1 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_8_41pass1 -> max_3_43pass1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_8_41pass1 -> view_7_44pass1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			scatteradd_3_47pass1 -> getitem_10_51pass1 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			view_8_48pass1 -> flip_3_49pass1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			flip_3_49pass1 -> view_9_50pass1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			view_9_50pass1 -> sub_3_52pass1 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_10_51pass1 -> sub_3_52pass1 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			sub_3_52pass1 -> linear_4_53pass1 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.2_pass2" {
+			fillcolor=white label=<<B>@encoder.convs.2:2</B><br align='left'/>(DMPNNConv)<br align='left'/>> labelloc=b penwidth=4.0 style="filled,solid"
+			unbind_7_39pass2 -> getitem_10_51pass2 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_8_41pass2 -> max_3_43pass2 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_8_41pass2 -> view_7_44pass2 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			scatteradd_3_47pass2 -> getitem_10_51pass2 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			view_8_48pass2 -> flip_3_49pass2 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			flip_3_49pass2 -> view_9_50pass2 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			view_9_50pass2 -> sub_3_52pass2 [label=<<FONT POINT-SIZE='10'><b>arg 1</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			getitem_10_51pass2 -> sub_3_52pass2 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			sub_3_52pass2 -> linear_4_53pass2 [arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.edge_to_node_pass1" {
+			fillcolor=white label=<<B>@encoder.edge_to_node</B><br align='left'/>(Linear)<br align='left'/>> labelloc=b penwidth=4.0 style="filled,dashed"
+		}
+	}
+	subgraph cluster_head_pass1 {
+		subgraph "cluster_head.ffn1_pass1" {
+			fillcolor=white label=<<B>@head.ffn1</B><br align='left'/>(Linear)<br align='left'/>> labelloc=b penwidth=4.0 style="filled,dashed"
+		}
+	}
+	subgraph cluster_head_pass1 {
+		subgraph "cluster_head.ffn2_pass1" {
+			fillcolor=white label=<<B>@head.ffn2</B><br align='left'/>(Linear)<br align='left'/>> labelloc=b penwidth=4.0 style="filled,dashed"
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.0_pass1" {
+			subgraph "cluster_encoder.convs.0.aggr_module_pass1" {
+				fillcolor=white label=<<B>@encoder.convs.0.aggr_module</B><br align='left'/>(SumAggregation)<br align='left'/>> labelloc=b penwidth=3.0 style="filled,solid"
+				view_1_12 -> expandas_1_13 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+				expandas_1_13 -> scatteradd_1_15 [label=<<FONT POINT-SIZE='10'><b>arg 2</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+				newzeros_1_14 -> scatteradd_1_15 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			}
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.0_pass1" {
+			subgraph "cluster_encoder.convs.0.linear_pass1" {
+				fillcolor=white label=<<B>@encoder.convs.0.linear</B><br align='left'/>(Linear)<br align='left'/>> labelloc=b penwidth=3.0 style="filled,dashed"
+			}
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.1_pass1" {
+			subgraph "cluster_encoder.convs.1.aggr_module_pass1" {
+				fillcolor=white label=<<B>@encoder.convs.1.aggr_module</B><br align='left'/>(SumAggregation)<br align='left'/>> labelloc=b penwidth=3.0 style="filled,solid"
+				view_4_28 -> expandas_2_29 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+				expandas_2_29 -> scatteradd_2_31 [label=<<FONT POINT-SIZE='10'><b>arg 2</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+				newzeros_2_30 -> scatteradd_2_31 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			}
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.1_pass1" {
+			subgraph "cluster_encoder.convs.1.linear_pass1" {
+				fillcolor=white label=<<B>@encoder.convs.1.linear</B><br align='left'/>(Linear)<br align='left'/>> labelloc=b penwidth=3.0 style="filled,dashed"
+			}
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.2_pass1" {
+			subgraph "cluster_encoder.convs.2.aggr_module_pass1" {
+				fillcolor=white label=<<B>@encoder.convs.2.aggr_module:1</B><br align='left'/>(SumAggregation)<br align='left'/>> labelloc=b penwidth=3.0 style="filled,solid"
+				view_7_44pass1 -> expandas_3_45pass1 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+				expandas_3_45pass1 -> scatteradd_3_47pass1 [label=<<FONT POINT-SIZE='10'><b>arg 2</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+				newzeros_3_46pass1 -> scatteradd_3_47pass1 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			}
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.2_pass1" {
+			subgraph "cluster_encoder.convs.2.linear_pass1" {
+				fillcolor=white label=<<B>@encoder.convs.2.linear:1</B><br align='left'/>(Linear)<br align='left'/>> labelloc=b penwidth=3.0 style="filled,dashed"
+			}
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.2_pass2" {
+			subgraph "cluster_encoder.convs.2.aggr_module_pass2" {
+				fillcolor=white label=<<B>@encoder.convs.2.aggr_module:2</B><br align='left'/>(SumAggregation)<br align='left'/>> labelloc=b penwidth=3.0 style="filled,solid"
+				view_7_44pass2 -> expandas_3_45pass2 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+				expandas_3_45pass2 -> scatteradd_3_47pass2 [label=<<FONT POINT-SIZE='10'><b>arg 2</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+				newzeros_3_46pass2 -> scatteradd_3_47pass2 [label=<<FONT POINT-SIZE='10'><b>arg 0</b></FONT>> arrowsize=.7 color=black fontcolor=black labelfontsize=8 style=solid]
+			}
+		}
+	}
+	subgraph cluster_encoder_pass1 {
+		subgraph "cluster_encoder.convs.2_pass2" {
+			subgraph "cluster_encoder.convs.2.linear_pass2" {
+				fillcolor=white label=<<B>@encoder.convs.2.linear:2</B><br align='left'/>(Linear)<br align='left'/>> labelloc=b penwidth=3.0 style="filled,dashed"
+			}
+		}
+	}
+}

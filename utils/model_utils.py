@@ -4,7 +4,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from torch_geometric.nn import MessagePassing, global_add_pool
+from torch_geometric.nn import MessagePassing, global_mean_pool
 from beartype import beartype
 
 
@@ -41,8 +41,7 @@ class DMPNNConv(MessagePassing):
 class GNNEncoder(nn.Module):
     """A GNN encoder using DMPNN convolutions.
     This encoder can operate in two modes: 'denoise' (using noisy features) or 'predict' (using clean features).
-    It processes molecular graphs by performing message passing on edges, then aggregating to nodes,
-    and finally pooling to create graph-level embeddings.
+    It processes molecular graphs by performing message passing on edges, then aggregating to nodes, returning embeddings.
     Args:
         num_node_features (int): Number of input node features
         num_edge_features (int): Number of input edge features
@@ -50,7 +49,7 @@ class GNNEncoder(nn.Module):
         mode (str): Operating mode, either 'denoise' or 'predict'
         depth (int): Number of DMPNN convolution layers
     Returns:
-        torch.Tensor: Graph-level embedding after global pooling
+        torch.Tensor: Node-level embedding after global pooling
     Note:
         Contains a workaround for size mismatch issues that occur with batch size 1.
         This should be addressed in future versions.
@@ -75,13 +74,12 @@ class GNNEncoder(nn.Module):
         self.convs = nn.ModuleList([DMPNNConv(hidden_size) for _ in range(depth)])
 
         self.edge_to_node = nn.Linear(num_node_features + hidden_size, hidden_size)
-        self.pool = global_add_pool  # Not learnable
 
     def forward(self, data):
         """Forward pass through the DMPNN model.
         Args:
             data: Graph data object containing node features (x/x_noisy), edge indices,
-                  edge attributes (edge_attr/edge_attr_noisy), and batch information.
+                  edge features (edge_attr/edge_attr_noisy), and batch information.
         Returns:
             torch.Tensor: Global graph embedding after pooling node representations.
         Note:
@@ -89,15 +87,13 @@ class GNNEncoder(nn.Module):
             - Includes workaround for size mismatch between edge and node representations
               that occurs with batch size 1
         """
-        edge_index, edge_attr, batch = data.edge_index, data.edge_attr, data.batch
+        edge_index, edge_attr = data.edge_index, data.edge_attr
 
         if self.mode == "denoise":
             x = data.x_noisy
-            edge_index = data.edge_index_noisy
             edge_attr = data.edge_attr_noisy
         elif self.mode == "predict":
             x = data.x
-            edge_index = data.edge_index
             edge_attr = data.edge_attr
         else:
             raise ValueError("Invalid mode. Choose 'denoise' or 'predict'.")
@@ -111,7 +107,7 @@ class GNNEncoder(nn.Module):
 
         # DMPNN Conv layers
         for layer in self.convs:
-            
+
             # DMPNN convolution
             _, h_new = layer(edge_index, h)
 
@@ -137,18 +133,14 @@ class GNNEncoder(nn.Module):
             s = s_fixed
 
         q = torch.cat([x, s], dim=1)
-        h = F.relu(self.edge_to_node(q))
+        embeddings = F.relu(self.edge_to_node(q))
 
-        # Global pooling for the final node embeddings
-        embedding = self.pool(h, batch)
-
-        return embedding
+        return embeddings
 
 
 class GNNDecoder(nn.Module):
     """A GNN decoder that reconstructs node and edge features from graph-level embeddings.
-    This module takes graph-level embeddings and decodes them back to node and edge features
-    by expanding the graph embeddings to match the original graph structure.
+    This module takes graph-level embeddings and decodes them back to node and edge features.
         hidden_size (int): Dimension of the input graph embeddings
         num_node_features (int): Number of output node features to decode
         num_edge_features (int): Number of output edge features to decode
@@ -167,51 +159,21 @@ class GNNDecoder(nn.Module):
         super().__init__()
         # Node decoding layer
         self.node_lin = nn.Linear(hidden_size, num_node_features)
-        # Edge decoding layers
-        self.edge_lin = nn.Linear(hidden_size, num_edge_features)
+        self.edge_lin = nn.Linear(hidden_size * 2, num_edge_features) # Two directions per edge
 
-    def forward(self, graph_embedding, batch, edge_index):
+    def forward(self, embeddings, edge_index):
         """Forward pass to decode node and edge features from graph embeddings.
         Args:
-            graph_embedding: Graph-level embeddings (batch_size, hidden_size)
-            batch: Batch tensor indicating which graph each node belongs to
+            embeddings: Graph-level embeddings (batch_size, hidden_size)
             edge_index: Edge connectivity in COO format (2, num_edges)
         Returns:
-            tuple: (x_hat, edge_hat) - decoded node and edge features
+            tuple: (x_hat, edge_hat), decoded node and edge features
         """
-        # Decode node features
-        batch_size = graph_embedding.size(0)
-        node_counts = torch.bincount(batch)  # number of nodes in each graph
-
-        # Expand each graph embedding for nodes
-        expanded_nodes = []
-        for g in range(batch_size):
-            expanded_nodes.append(
-                graph_embedding[g].unsqueeze(0).repeat(node_counts[g], 1)
-            )
-
-        # Concatenate along node dimension
-        expanded_nodes = torch.cat(expanded_nodes, dim=0)  # total_nodes x hidden_size
-
-        # Decode node features
-        x_hat = expanded_nodes
-        x_hat = self.node_lin(x_hat)
-
-        # Decode edge features
-        # Map edges to their source node's graph
-        edge_src = edge_index[0]  # Source nodes of edges
-        edge_batch = batch[
-            edge_src
-        ]  # Batch indices of source nodes (which graph they belong to)
-
-        # Expand graph embeddings for edges
-        expanded_edges = graph_embedding[edge_batch]  # shape = (num_edges, hidden_size)
-
-        # Decode edge features
-        edge_hat = expanded_edges
-        edge_hat = self.edge_lin(edge_hat)
-
-        return x_hat, edge_hat
+        src, dst = edge_index
+        edge_input = torch.cat([embeddings[src], embeddings[dst]], dim=1)
+        edge_hat = self.edge_lin(edge_input)
+        node_hat = self.node_lin(embeddings)
+        return node_hat, edge_hat
 
 
 @beartype
@@ -228,15 +190,19 @@ class GNNHead(nn.Module):
         # Only some FFN layers which get the embedding as input
         self.ffn1 = nn.Linear(hidden_size, hidden_size)
         self.ffn2 = nn.Linear(hidden_size, 1)
+        self.pool = global_mean_pool  # Not learnable, used for pooling node features
 
-    def forward(self, graph_embedding):
+    def forward(self, embeddings, batch):
         """Forward pass through the prediction head.
         Args:
             graph_embedding: Input graph embedding tensor
         Returns:
             Predicted solubility values with last dimension squeezed
         """
-        x = F.relu(self.ffn1(graph_embedding))
+        pool = self.pool(
+            embeddings, batch
+        )  # Global pooling to get graph-level embedding
+        x = F.relu(self.ffn1(pool))
         return self.ffn2(x).squeeze(-1)
 
 
@@ -287,26 +253,25 @@ class GNN(nn.Module):
         self.encoder.mode = mode
 
     def get_embedding(self, data):
-        """Get the graph embedding from the encoder.
+        """Get the pooled graph embedding from the encoder.
         Args:
             data: Input data to be encoded.
         Returns:
             Graph embedding tensor from the encoder.
         """
-        graph_embedding = self.encoder(data)
-        return graph_embedding
+        embeddings = self.encoder(data)
+        mol_embeddings = self.head.pool(embeddings, data.batch)
+        return mol_embeddings
 
     def forward(self, data):
-        graph_embedding = self.encoder(data)
+        embeddings = self.encoder(data)
 
         if self.encoder.mode == "predict":
-            prediction = self.head(graph_embedding)
+            prediction = self.head(embeddings, data.batch)
             return prediction
 
         elif self.encoder.mode == "denoise":
-            node_features, edge_features = self.decoder(
-                graph_embedding, data.batch, data.edge_index
-            )
+            node_features, edge_features = self.decoder(embeddings, data.edge_index)
             return node_features, edge_features
 
         else:

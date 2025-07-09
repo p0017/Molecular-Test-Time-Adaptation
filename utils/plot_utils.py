@@ -2,6 +2,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from beartype import beartype
+from torch_scatter import scatter_mean
+import torch
+import seaborn as sns
+from torch_geometric.loader import DataLoader
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 @beartype
@@ -53,7 +59,11 @@ def solubility_histogram(
 
 @beartype
 def solubility_histogram_shift(
-    df_train: pd.DataFrame, df_val:pd.DataFrame, df_test_1: pd.DataFrame, df_test_2: pd.DataFrame, save_plots: bool = False
+    df_train: pd.DataFrame,
+    df_val: pd.DataFrame,
+    df_test_1: pd.DataFrame,
+    df_test_2: pd.DataFrame,
+    save_plots: bool = False,
 ):
     """Plotting a histogram of solubility values for training and test datasets.
     Args:
@@ -117,7 +127,9 @@ def solubility_histogram_shift(
 
     plt.tight_layout()
     if save_plots:
-        plt.savefig("figures/solubility_histogram_shift.jpg", dpi=300, bbox_inches="tight")
+        plt.savefig(
+            "figures/solubility_histogram_shift.jpg", dpi=300, bbox_inches="tight"
+        )
         plt.savefig("figures/solubility_histogram_shift.pdf", bbox_inches="tight")
     plt.show()
 
@@ -210,9 +222,11 @@ def functional_group_histogram(
         test_nonzero = df_test[df_test[fg] > 0][fg]
 
         # Get the range of values for proper binning
-        max_val = max(train_nonzero.max() if len(train_nonzero) > 0 else 0, 
-                     test_nonzero.max() if len(test_nonzero) > 0 else 0)
-        
+        max_val = max(
+            train_nonzero.max() if len(train_nonzero) > 0 else 0,
+            test_nonzero.max() if len(test_nonzero) > 0 else 0,
+        )
+
         if max_val > 0:
             # Create bins with edges at 0.5, 1.5, 2.5, ... to center each integer value
             bins = np.arange(0.5, max_val + 1.5, 1)
@@ -258,6 +272,137 @@ def functional_group_histogram(
             "figures/functional_groups_distribution.jpg", dpi=300, bbox_inches="tight"
         )
         plt.savefig("figures/functional_groups_distribution.pdf", bbox_inches="tight")
+    plt.show()
+
+
+@beartype
+def embedding_histogram(
+    train_embeddings,
+    val_embeddings,
+    test_embeddings_20,
+    test_embeddings_nh,
+    val_embeddings_with_TTA,
+    test_embeddings_with_TTA_20,
+    test_embeddings_with_TTA_nh,
+    save_plots: bool = False,
+):
+    """Plotting a histogram of embedding values for training and test datasets.
+
+    Args:
+        train_embeddings): Training embeddings with shape (n_samples, 16)
+        val_embeddings: Validation embeddings with shape (n_samples, 16)
+        test_embeddings_20: Test 20-atom embeddings with shape (n_samples, 16)
+        test_embeddings_nh: Test NH2 embeddings with shape (n_samples, 16)
+        save_plots (bool): Whether to save the plots as images. Defaults to False.
+    """
+
+    train_flat = np.array(train_embeddings).flatten()
+    val_flat = np.array(val_embeddings).flatten()
+    test_20_flat = np.array(test_embeddings_20).flatten()
+    test_nh_flat = np.array(test_embeddings_nh).flatten()
+    val_with_TTA_flat = np.array(val_embeddings_with_TTA).flatten()
+    test_with_TTA_20_flat = np.array(test_embeddings_with_TTA_20).flatten()
+    test_with_TTA_nh_flat = np.array(test_embeddings_with_TTA_nh).flatten()
+
+    # Min and max values across all embeddings
+    min_val = min(
+        train_flat.min(),
+        val_flat.min(),
+        test_20_flat.min(),
+        test_nh_flat.min(),
+        val_with_TTA_flat.min(),
+        test_with_TTA_20_flat.min(),
+        test_with_TTA_nh_flat.min(),
+    )
+    # Max determined using percentile due to outliers
+    percentile = 99.9
+    max_val = max(
+        np.percentile(train_flat, percentile),
+        np.percentile(val_flat, percentile),
+        np.percentile(test_20_flat, percentile),
+        np.percentile(test_nh_flat, percentile),
+        np.percentile(val_with_TTA_flat, percentile),
+        np.percentile(test_with_TTA_20_flat, percentile),
+        np.percentile(test_with_TTA_nh_flat, percentile),
+    )
+
+    fig, ax = plt.subplots(3, 1, figsize=(8, 6))
+    ax[0].hist(
+        train_flat,
+        bins=100,
+        alpha=0.7,
+        label="Training Embeddings",
+        color="blue",
+        density=False,
+    )
+
+    ax[1].hist(
+        test_20_flat,
+        bins=100,
+        alpha=0.5,
+        label="20 Atom Test Embeddings",
+        color="green",
+        density=False,
+    )
+
+    ax[1].hist(
+        test_nh_flat,
+        bins=100,
+        alpha=0.5,
+        label="NH2 Test Embeddings",
+        color="red",
+        density=False,
+    )
+
+    ax[1].hist(
+        val_flat,
+        bins=100,
+        alpha=0.5,
+        label="Validation Embeddings",
+        color="orange",
+        density=False,
+    )
+
+    ax[2].hist(
+        test_with_TTA_20_flat,
+        bins=100,
+        alpha=0.5,
+        label="20 Atom Test Embeddings with TTA",
+        color="green",
+        density=False,
+    )
+
+    ax[2].hist(
+        test_with_TTA_nh_flat,
+        bins=100,
+        alpha=0.5,
+        label="NH2 Test Embeddings with TTA",
+        color="red",
+        density=False,
+    )
+
+    ax[2].hist(
+        val_with_TTA_flat,
+        bins=100,
+        alpha=0.5,
+        label="Validation Embeddings with TTA",
+        color="orange",
+        density=False,
+    )
+
+    ax[2].set_xlabel("Embedding Value")
+
+    for axis in ax:
+        axis.set_ylabel("Count")
+        axis.set_xlim(min_val, max_val)
+        axis.set_yscale("log")
+        axis.legend()
+        axis.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    if save_plots:
+        plt.savefig("figures/embedding_histogram.jpg", dpi=300, bbox_inches="tight")
+        plt.savefig("figures/embedding_histogram.pdf", bbox_inches="tight")
     plt.show()
 
 
@@ -452,13 +597,19 @@ def solubility_embeddings(
 
     # Dynamically adjust the limits for both plots
     x_min_tsne, x_max_tsne, y_min_tsne, y_max_tsne = get_dynamic_limits(
-        train_embeddings_tsne, val_embeddings_tsne, test_embeddings_tsne_1, test_embeddings_tsne_2
+        train_embeddings_tsne,
+        val_embeddings_tsne,
+        test_embeddings_tsne_1,
+        test_embeddings_tsne_2,
     )
     ax1.set_xlim(x_min_tsne, x_max_tsne)
     ax1.set_ylim(y_min_tsne, y_max_tsne)
 
     x_min_umap, x_max_umap, y_min_umap, y_max_umap = get_dynamic_limits(
-        train_embeddings_umap, val_embeddings_umap, test_embeddings_umap_1, test_embeddings_umap_2
+        train_embeddings_umap,
+        val_embeddings_umap,
+        test_embeddings_umap_1,
+        test_embeddings_umap_2,
     )
     ax2.set_xlim(x_min_umap, x_max_umap)
     ax2.set_ylim(y_min_umap, y_max_umap)
@@ -533,7 +684,10 @@ def sets_embeddings(
 
     # Dynamically adjust the limits for both plots
     x_min_tsne, x_max_tsne, y_min_tsne, y_max_tsne = get_dynamic_limits(
-        train_embeddings_tsne, val_embeddings_tsne, test_embeddings_tsne_1, test_embeddings_tsne_2
+        train_embeddings_tsne,
+        val_embeddings_tsne,
+        test_embeddings_tsne_1,
+        test_embeddings_tsne_2,
     )
 
     ax1.set_title("t-SNE Projection")
@@ -575,7 +729,10 @@ def sets_embeddings(
 
     # Dynamically adjust the limits for both plots
     x_min_umap, x_max_umap, y_min_umap, y_max_umap = get_dynamic_limits(
-        train_embeddings_umap, val_embeddings_umap, test_embeddings_umap_1, test_embeddings_umap_2
+        train_embeddings_umap,
+        val_embeddings_umap,
+        test_embeddings_umap_1,
+        test_embeddings_umap_2,
     )
 
     ax2.set_title("UMAP Projection")
@@ -767,7 +924,12 @@ def centroid_embeddings(
     ax1.set_ylabel("t-SNE Component 2")
 
     x_min_tsne, x_max_tsne, y_min_tsne, y_max_tsne = get_dynamic_limits(
-        train_embeddings_tsne, val_embeddings_tsne, test_embeddings_tsne_1, test_embeddings_tsne_2, 20, 80
+        train_embeddings_tsne,
+        val_embeddings_tsne,
+        test_embeddings_tsne_1,
+        test_embeddings_tsne_2,
+        20,
+        80,
     )
 
     ax1.set_xlim(x_min_tsne, x_max_tsne)
@@ -901,7 +1063,12 @@ def centroid_embeddings(
     ax2.set_ylabel("UMAP Component 2")
 
     x_min_umap, x_max_umap, y_min_umap, y_max_umap = get_dynamic_limits(
-        train_embeddings_umap, val_embeddings_umap, test_embeddings_umap_1, test_embeddings_umap_2, 20, 80
+        train_embeddings_umap,
+        val_embeddings_umap,
+        test_embeddings_umap_1,
+        test_embeddings_umap_2,
+        20,
+        80,
     )
 
     ax2.set_xlim(x_min_umap, x_max_umap)
@@ -997,14 +1164,224 @@ def loss_plot(
         color="green",
         linestyle="dashed",
     )
-    
+
     ax.legend(ncol=2)
     ax.set_xlabel("Epochs")
-    ax.set_xticks(list(range(0, epochs, 5)))
+    ax.set_xticks(list(range(0, epochs, 10)))
     ax.set_ylabel("Normalized Loss")
 
     plt.tight_layout()
     if save_plots:
         plt.savefig("figures/loss_plot.jpg", dpi=300, bbox_inches="tight")
         plt.savefig("figures/loss_plot.pdf", bbox_inches="tight")
+    plt.show()
+
+
+def feature_correlation(
+    train_loader, val_loader, test_loader_20, test_loader_nh, feature_type: str, save_plots: bool = False
+):
+    """Plotting a correlation matrix for either node or edge features.
+    Args:
+        train_loader: DataLoader for the training set.
+        val_loader: DataLoader for the validation set.
+        test_loader_20: DataLoader for the 20 atom test set.
+        test_loader_nh: DataLoader for the NH2 test set.
+        feature_type (str): Type of features to analyze, either "node" or "edge".
+        save_plots (bool): Whether to save the plots as images. Defaults to False.
+    """
+    assert feature_type in ["node", "edge"], "Choose either node or edge features."
+
+    mean_features = []
+    targets = []
+
+    for loader in [train_loader, val_loader, test_loader_20, test_loader_nh]:
+        for batch in loader:
+            if feature_type == "node":
+                features = batch.x
+                index = batch.batch
+            elif feature_type == "edge":
+                features = batch.edge_attr
+                index = batch.batch[batch.edge_index[0]]
+
+            # Getting the mean value of each node feature over all nodes for each graph
+            # For each sample in the batch, so mean_features_batch has shape (num_samples_in_batch, num_node_features)
+            mean_features_batch = scatter_mean(features, index, dim=0).cpu().tolist()
+            mean_features.extend(mean_features_batch)
+            targets.extend(batch.y.cpu().tolist())
+
+    mean_features = np.array(mean_features)
+    targets = np.array(targets).reshape(-1, 1)
+
+    # Concatenate features and target
+    all_data = np.hstack([mean_features, targets])
+
+    if feature_type == "node":
+        feature_names = [
+            "is_B",
+            "is_Be",
+            "is_Br",
+            "is_C",
+            "is_Cl",
+            "is_F",
+            "is_I",
+            "is_N",
+            "is_Nb",
+            "is_O",
+            "is_P",
+            "is_S",
+            "is_Se",
+            "is_Si",
+            "is_V",
+            "is_W",
+            "is_unknown_element",
+            "has_degree_0",
+            "has_degree_1",
+            "has_degree_2",
+            "has_degree_3",
+            "has_degree_4",
+            "has_degree_5",
+            "has_unknown_degree",
+            "formal_charge_-1",
+            "formal_charge_-2",
+            "formal_charge_1",
+            "formal_charge_2",
+            "formal_charge_0",
+            "formal_charge_unknown",
+            "num_H_0",
+            "num_H_1",
+            "num_H_2",
+            "num_H_3",
+            "num_H_4",
+            "num_H_unknown",
+            "hybridization_SP",
+            "hybridization_SP2",
+            "hybridization_SP3",
+            "hybridization_SP3D",
+            "hybridization_SP3D2",
+            "hybridization_unknown",
+            "is_aromatic",
+            "mass",
+        ]
+    elif feature_type == "edge":
+        feature_names = [
+            "is_not_None",
+            "is_single",
+            "is_double",
+            "is_triple",
+            "is_aromatic",
+            "is_conjugated",
+            "is_ring",
+        ]
+
+    columns = feature_names + ["solubility"]
+
+    # Create DataFrame and compute correlation matrix
+    df = pd.DataFrame(all_data, columns=columns)
+    corr_matrix = df.corr()
+
+    if feature_type == "node":
+        figsize = (11, 11)
+    elif feature_type == "edge":
+        figsize = (3, 3)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    hm = sns.heatmap(
+        corr_matrix,
+        annot=False,
+        cmap="coolwarm",
+        center=0,
+        xticklabels=corr_matrix.columns,
+        yticklabels=corr_matrix.index,
+        cbar=False,
+    )
+    plt.xticks(rotation=45, ha="right")
+    ax.set_aspect("equal")
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+    if save_plots:
+        plt.savefig(f"figures/feature_correlation_{feature_type}.jpg", dpi=300, bbox_inches="tight")
+        plt.savefig(f"figures/feature_correlation_{feature_type}.pdf", bbox_inches="tight")
+
+
+def feature_visualization(
+    model,
+    train_loader,
+    val_loader,
+    test_loader_20,
+    test_loader_nh,
+    feature_type: str,
+    save_plots: bool = False,
+):
+    """
+    Visualizes the original, noisy, and denoised node features of the first data point
+    from the validation and test loaders.
+    Args:
+        model: The trained model to use for denoising.
+        train_loader: DataLoader for the training set.
+        val_loader: DataLoader for the validation set.
+        test_loader_20: DataLoader for the test set with 20+ atoms.
+        test_loader_nh: DataLoader for the test set with NH2 functional groups.
+        feature_type (str): Type of features to visualize, either "node" or "edge".
+        save_plots (bool): Whether to save the plots as images. Defaults to False.
+    """
+    assert feature_type in ["node", "edge"], "Choose either node or edge features."
+
+    model.eval()
+    model.set_mode("denoise")
+
+    loaders = [train_loader, val_loader, test_loader_20, test_loader_nh]
+    y_dims = [loader.dataset.get(0).x.shape[0] for loader in loaders]
+    # Subplot sizes are adapted to the number of features
+    heights = [y / sum(y_dims) for y in y_dims]
+
+    fig, axes = plt.subplots(
+        len(loaders),
+        3,
+        figsize=(8, 10),
+        gridspec_kw={"height_ratios": heights, "hspace": 0.15, "wspace": 0.05},
+    )
+
+    im_opts = {"cmap": "viridis", "vmin": 0, "vmax": 1, "aspect": "auto"}
+    row_titles = ["Train", "Val", "Test 20", "Test NH2"]
+
+    for i, loader in enumerate(loaders):
+        data_point = loader.dataset.get(0)
+        with torch.no_grad():
+            # Getting the denoised features
+            temp_loader = DataLoader([data_point.to(device)], batch_size=1)
+            batch_for_model = next(iter(temp_loader))
+            node_hat, edge_hat = model(batch_for_model)
+
+        data_point = data_point.cpu()
+
+        if feature_type == "node":
+            arrays = [data_point.x, data_point.x_noisy, node_hat.cpu()]
+        elif feature_type == "edge":
+            arrays = [data_point.edge_attr, data_point.edge_attr_noisy, edge_hat.cpu()]
+
+        for j, arr in enumerate(arrays):
+            ax = axes[i, j]
+            ax.imshow(arr, **im_opts)
+            ax.set_ylim(arr.shape[0], 0)
+            if j == 0:
+                if feature_type == "node":
+                    ax.set_ylabel(
+                        f"{row_titles[i]}\n"
+                        + ("Atoms" if feature_type == "node" else "Bonds")
+                    )
+                elif feature_type == "edge":
+                    ax.set_ylabel("Bonds")
+            if i == 0:
+                ax.set_title(["Original", "Noisy", "Denoised"][j])
+            if i == 2:
+                ax.set_xlabel("Features")
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+    if save_plots:
+        plt.savefig(f"figures/feature_visualization_{feature_type}.jpg", dpi=300, bbox_inches="tight")
+        plt.savefig(f"figures/feature_visualization_{feature_type}.pdf", bbox_inches="tight")
+
     plt.show()

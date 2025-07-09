@@ -68,10 +68,10 @@ def get_atom_features(atom) -> list:
                 "V",
                 "W",
             ],
-        ),
-        one_hot_encoding_unk(atom.GetTotalDegree(), [0, 1, 2, 3, 4, 5]),
-        one_hot_encoding_unk(atom.GetFormalCharge(), [-1, -2, 1, 2, 0]),
-        one_hot_encoding_unk(int(atom.GetTotalNumHs()), [0, 1, 2, 3, 4]),
+        ),  # Features 0-16: Element type (16 choices + 1 unknown)
+        one_hot_encoding_unk(atom.GetTotalDegree(), [0, 1, 2, 3, 4, 5]),  # Features 17-23: Atom degree (6 choices + 1 unknown)
+        one_hot_encoding_unk(atom.GetFormalCharge(), [-1, -2, 1, 2, 0]),  # Features 24-29: Formal charge (5 choices + 1 unknown)
+        one_hot_encoding_unk(int(atom.GetTotalNumHs()), [0, 1, 2, 3, 4]),  # Features 30-35: Hydrogen count (5 choices + 1 unknown)
         one_hot_encoding_unk(
             int(atom.GetHybridization()),
             [
@@ -81,9 +81,9 @@ def get_atom_features(atom) -> list:
                 Chem.rdchem.HybridizationType.SP3D,
                 Chem.rdchem.HybridizationType.SP3D2,
             ],
-        ),
-        [1 if atom.GetIsAromatic() else 0],
-        [atom.GetMass() * 0.01],
+        ),  # Features 36-41: Hybridization type (5 choices + 1 unknown)
+        [1 if atom.GetIsAromatic() else 0],  # Feature 42: Aromaticity (binary)
+        [atom.GetMass() * 0.01],  # Feature 43: Scaled atomic mass (continuous)
     ]
     return sum(atom_features, [])  # Flatten the list into a single list
 
@@ -168,10 +168,7 @@ class ChemDataset(Dataset):
         self,
         smiles: np.ndarray,
         labels,
-        flip_prob: float = 0.5,
-        noise_std: float = 1.0,
-        node_mask_prob: float = 0.5,
-        edge_drop_prob: float = 0.5,
+        mask_prob: float = 0.3,
         precompute: bool = False,
     ):
         """Initialize ChemDataset with SMILES strings and labels.
@@ -180,17 +177,14 @@ class ChemDataset(Dataset):
             labels: Target labels for the molecules
             flip_prob (float, optional): Probability of flipping bits for denoising task.
                                         Reference: denoising autoencoders use ~10%, BERT uses 15%.
-            noise_std (float, optional): Standard deviation for noise addition. Defaults to 0.4.
+            noise_std (float, optional): Standard deviation for noise addition.
             precompute (bool, optional): Whether to precompute dataset for faster GPU training.
         """
         super(ChemDataset, self).__init__()
         self.smiles = smiles
         self.labels = labels
+        self.mask_prob = mask_prob
         self.cache = {}
-        self.flip_prob = flip_prob
-        self.noise_std = noise_std
-        self.node_mask_prob = node_mask_prob
-        self.edge_drop_prob  = edge_drop_prob
         self.precompute = precompute
 
         # Precomputing the dataset such that the get method is faster, and the GPU doesn't have to wait for the CPU
@@ -251,62 +245,33 @@ class ChemDataset(Dataset):
 
         x_noisy = data.x.clone()
         edge_attr_noisy = data.edge_attr.clone()
-        edge_index_noisy = data.edge_index.clone()
+        num_nodes = data.x.size(0)
+        num_edges = data.edge_attr.size(0)
 
-        # node‐level masking (zero out entire feature vectors)
-        if self.node_mask_prob > 0:
-            mask = (
-                torch.rand(x_noisy.size(0), device=x_noisy.device) < self.node_mask_prob
-            )
-            x_noisy[mask] = 0.0
+        if num_nodes >= 2:
+            num_nodes_to_mask = max(1, int(num_nodes * self.mask_prob))
+            mask_indices = torch.randperm(num_nodes)[:num_nodes_to_mask]
+            x_noisy[mask_indices, :] = 0 
 
-        # random edge‐drop on the noisy graph
-        if self.edge_drop_prob > 0:
-            num_edges = edge_attr_noisy.size(0)
-            if num_edges % 2 != 0:
-                raise ValueError(f"Expected even number of edges, got {num_edges}")
+        if num_edges >= 2:
+            # Masking both directions of an edge
+            edge_tuples = [tuple(e) for e in data.edge_index.t().tolist()]
+            bond_to_indices = {}
+            for idx, (a, b) in enumerate(edge_tuples):
+                key = tuple(sorted((a, b)))
+                bond_to_indices.setdefault(key, []).append(idx)
 
-            num_bonds = num_edges // 2
-            # sample which bonds to KEEP
-            keep_bond = (
-                torch.rand(num_bonds, device=edge_attr_noisy.device)
-                > self.edge_drop_prob
-            )
-            # never drop all edges
-            if keep_bond.sum() == 0:
-                idx = torch.randint(num_bonds, (1,), device=keep_bond.device)
-                keep_bond[idx] = True
-
-            # repeat each decision for both directions
-            keep = torch.empty(num_edges, dtype=torch.bool, device=keep_bond.device)
-            keep[0::2] = keep_bond
-            keep[1::2] = keep_bond
-
-            edge_attr_noisy = edge_attr_noisy[keep]
-            edge_index_noisy = edge_index_noisy[:, keep]
-
-        # bit‐flipping on remaining binary features
-        if self.flip_prob > 0:
-            # flip node‐features except last (mass) dim
-            bf = x_noisy[:, :-1]
-            flip_mask = torch.rand_like(bf) < self.flip_prob
-            bf[flip_mask] = 1.0 - bf[flip_mask]
-            x_noisy[:, :-1] = bf
-            # flip edge attributes
-            ef = edge_attr_noisy
-            flip_mask_e = torch.rand_like(ef) < self.flip_prob
-            ef[flip_mask_e] = 1.0 - ef[flip_mask_e]
-            edge_attr_noisy = ef
-
-        # Gaussian noise on continuous mass feature (last dim of x)
-        if self.noise_std > 0:
-            m = x_noisy[:, -1:].clone()
-            m = m + m * torch.randn_like(m) * self.noise_std
-            x_noisy[:, -1:] = m
+            unique_bonds = list(bond_to_indices.keys())
+            num_bonds = len(unique_bonds)
+            num_bonds_to_mask = max(1, int(num_bonds * self.mask_prob))
+            bonds_to_mask = np.random.choice(num_bonds, num_bonds_to_mask, replace=False)
+            for bond_idx in bonds_to_mask:
+                for idx in bond_to_indices[unique_bonds[bond_idx]]:
+                    edge_attr_noisy[idx, :] = 0
 
         data.x_noisy = x_noisy
-        data.edge_index_noisy = edge_index_noisy
         data.edge_attr_noisy = edge_attr_noisy
+        
         return data
 
     def get(self, key):
