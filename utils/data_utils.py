@@ -169,15 +169,14 @@ class ChemDataset(Dataset):
         smiles: np.ndarray,
         labels,
         mask_prob: float = 0.3,
+        # For reference, BERT uses a masking prob of 0.15, denoising autoencoders use about 0.1
         precompute: bool = False,
     ):
         """Initialize ChemDataset with SMILES strings and labels.
         Args:
             smiles (np.ndarray): SMILES molecular representations
             labels: Target labels for the molecules
-            flip_prob (float, optional): Probability of flipping bits for denoising task.
-                                        Reference: denoising autoencoders use ~10%, BERT uses 15%.
-            noise_std (float, optional): Standard deviation for noise addition.
+            mask_prob (float, optional): Probability of setting all features of some node or edge to zero.
             precompute (bool, optional): Whether to precompute dataset for faster GPU training.
         """
         super(ChemDataset, self).__init__()
@@ -248,25 +247,30 @@ class ChemDataset(Dataset):
         num_nodes = data.x.size(0)
         num_edges = data.edge_attr.size(0)
 
+        # No masking for single atom molecules
         if num_nodes >= 2:
             num_nodes_to_mask = max(1, int(num_nodes * self.mask_prob))
             mask_indices = torch.randperm(num_nodes)[:num_nodes_to_mask]
+            # Setting all features of the masked nodes to zero
             x_noisy[mask_indices, :] = 0 
 
+        # No masking for single bond molecules
         if num_edges >= 2:
             # Masking both directions of an edge
             edge_tuples = [tuple(e) for e in data.edge_index.t().tolist()]
             bond_to_indices = {}
             for idx, (a, b) in enumerate(edge_tuples):
+                # Edge (a, b) and (b, a) get the same index
                 key = tuple(sorted((a, b)))
                 bond_to_indices.setdefault(key, []).append(idx)
 
+            # All undirected bonds are stored in unique_bonds
             unique_bonds = list(bond_to_indices.keys())
-            num_bonds = len(unique_bonds)
-            num_bonds_to_mask = max(1, int(num_bonds * self.mask_prob))
-            bonds_to_mask = np.random.choice(num_bonds, num_bonds_to_mask, replace=False)
+            num_bonds_to_mask = max(1, int(len(unique_bonds) * self.mask_prob))
+            bonds_to_mask = np.random.choice(len(unique_bonds), num_bonds_to_mask, replace=False)
             for bond_idx in bonds_to_mask:
                 for idx in bond_to_indices[unique_bonds[bond_idx]]:
+                    # Setting all features of the masked edges to zero
                     edge_attr_noisy[idx, :] = 0
 
         data.x_noisy = x_noisy

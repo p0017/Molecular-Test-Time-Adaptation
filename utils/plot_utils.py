@@ -1356,6 +1356,7 @@ def feature_visualization(
 
         data_point = data_point.cpu()
 
+        # Plotting the original, noisy, and denoised features
         if feature_type == "node":
             arrays = [data_point.x, data_point.x_noisy, node_hat.cpu()]
         elif feature_type == "edge":
@@ -1366,13 +1367,10 @@ def feature_visualization(
             ax.imshow(arr, **im_opts)
             ax.set_ylim(arr.shape[0], 0)
             if j == 0:
-                if feature_type == "node":
-                    ax.set_ylabel(
-                        f"{row_titles[i]}\n"
-                        + ("Atoms" if feature_type == "node" else "Bonds")
-                    )
-                elif feature_type == "edge":
-                    ax.set_ylabel("Bonds")
+                ax.set_ylabel(
+                    f"{row_titles[i]}\n"
+                    + ("Atoms" if feature_type == "node" else "Bonds")
+                )
             if i == 0:
                 ax.set_title(["Original", "Noisy", "Denoised"][j])
             if i == 2:

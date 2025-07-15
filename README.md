@@ -2,6 +2,12 @@
 
 This repository investigates applying graph neural networks (GNNs) to predict molecular solubility of unseen data, using test-time adaptation (TTA).
 
+---
+
+<p align="center">
+  <img src="figures/model.drawio.svg" width="1000" />
+</p>
+
 <p align="center">
   <img src="figures/sets_TTA.jpg" width="1000" />
 </p>
@@ -10,7 +16,7 @@ This repository investigates applying graph neural networks (GNNs) to predict mo
 
 ## Overview
 
-Molecular solubility prediction is a critical task in drug development, but models often struggle with distribution shifts between training and test data. This project addresses this by implementing test-time adaptation for graph neural networks and applying it to molecular solubility prediction.
+Molecular solubility prediction is a critical task in drug development, but models often struggle with distribution shifts between training and test data. This project addresses this challenge by implementing test-time adaptation for graph neural networks and applying it to molecular solubility prediction.
 
 This project was carried out as part of the seminar **165.164 Selected Topics in Theoretical Chemistry** at TU Wien, under the supervision of [Prof. Esther Heid](https://hesther.github.io/).
 
